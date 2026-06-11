@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-white text-gray-900;
+}
+
+/* 填空题内容样式 */
+.fill-blank-content img {
+  max-width: 300px;
+  max-height: 200px;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 4px 0;
+  object-fit: contain;
+}
+
+.fill-blank-content p {
+  margin-bottom: 8px;
+}
+
+/* 填空题答案区域样式 */
+.fill-blank-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fill-blank-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fill-blank-label {
+  font-size: 14px;
+  color: #374151;
+  min-width: 60px;
+  font-weight: 500;
+}
+
+.fill-blank-input {
+  width: 300px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fill-blank-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* 填空题答案显示样式（结果页面） */
+.fill-blank-display {
+  display: inline-block;
+  width: 300px;
+  padding: 8px 12px;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: left;
+  word-break: break-words;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
