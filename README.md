@@ -269,21 +269,81 @@ toast.add({ title: '操作成功', color: 'green' })
 
 ## 构建部署
 
-### 生产构建
+### 生产环境构建
+
 ```bash
+# 安装依赖
+npm install
+
+# 构建生产版本
 npm run build
+
+# 构建产物位于 .output/ 目录
 ```
 
-### Docker 部署
-```dockerfile
-FROM node:20-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
+### 静态站点生成
+
+```bash
+# 生成静态站点（纯静态HTML，适合 CDN 部署）
+npm run generate
+
+# 静态文件位于 .output/public/ 目录
+```
+
+### 预览生产版本
+
+```bash
+# 本地预览生产构建
+npm run preview
+```
+
+### 环境变量配置
+
+```env
+# .env 文件
+NUXT_PUBLIC_API_BASE=https://api.yourdomain.com/api
+```
+
+### 项目打包
+
+```bash
+# 完整打包流程
+npm ci                    # 安装依赖
+npm run build             # 构建生产版本
+
+# 打包产物
+# .output/                 # 生产构建目录
+# .output/server/          # 服务端代码
+# .output/public/          # 静态资源
+```
+
+### Docker 打包
+
+```bash
+# 构建镜像
+docker build -t renhotec-academy-web .
+
+# 运行容器
+docker run -d -p 3000:3000 --name web renhotec-academy-web
+
+# 查看日志
+docker logs -f web
+```
+
+### Docker Compose 部署
+
+```bash
+# 启动所有服务
+docker compose up -d
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
 ```
 
 ## 浏览器支持
