@@ -163,9 +163,7 @@ const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefa
 // 渲染 Markdown 内容（动态拼接图片 URL）
 const renderContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const processed = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
   return marked(processed)
 }
@@ -218,7 +216,7 @@ const renderFillBlankText = (text: string) => {
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
-  const base = `${window.location.protocol}//${window.location.hostname}:8000`
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   // 移除（）标记，保留其他内容
   const cleaned = content.replace(/（\s*）/g, '')
   const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)

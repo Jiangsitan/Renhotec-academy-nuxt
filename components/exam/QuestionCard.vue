@@ -109,9 +109,7 @@ const typeLabel = computed(() => {
 // 渲染 Markdown 内容（动态拼接图片 URL）
 const renderedContent = computed(() => {
   if (!props.question.content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const processed = props.question.content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
   return marked(processed)
 })
@@ -154,9 +152,7 @@ const parseFillBlankContent = (content: string) => {
 // 渲染填空题文本部分的 Markdown（动态拼接图片 URL）
 const renderFillBlankText = (text: string) => {
   if (!text) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const processed = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
   return marked(processed)
 }
@@ -164,9 +160,7 @@ const renderFillBlankText = (text: string) => {
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   // 移除（）标记，保留其他内容
   const cleaned = content.replace(/（\s*）/g, '')
   const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)

@@ -4,8 +4,8 @@ export const useApi = () => {
 
   const baseURL = (config.public.apiBase as string) ||
     (typeof window !== 'undefined'
-      ? `${window.location.protocol}//${window.location.hostname}:8000/api`
-      : 'http://localhost:8000/api')
+      ? `${window.location.protocol}//${window.location.hostname}:9000/api`
+      : 'http://localhost:9000/api')
 
   const apiFetch = async <T>(url: string, options: any = {}): Promise<T> => {
     const headers: Record<string, string> = {

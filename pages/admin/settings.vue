@@ -87,7 +87,12 @@ const form = reactive({
 const getFullUrl = (path: string): string => {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
-  const base = `${window.location.protocol}//${window.location.hostname}:8000`
+  // OSS 路径
+  if (path.startsWith('academy/')) {
+    return `https://rh-wh.oss-cn-shanghai.aliyuncs.com/${path}`
+  }
+  // 本地路径（兼容）
+  const base = `${window.location.protocol}//${window.location.hostname}:9000`
   return path.startsWith('/') ? `${base}${path}` : path
 }
 
