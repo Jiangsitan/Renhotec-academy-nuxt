@@ -1,11 +1,10 @@
-version: '3.8'
-
 services:
   # Nuxt 前端应用
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: academy-nuxt:v1
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
     container_name: renhotec-web
     restart: unless-stopped
     ports:
