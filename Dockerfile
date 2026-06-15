@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # 生产镜像
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
