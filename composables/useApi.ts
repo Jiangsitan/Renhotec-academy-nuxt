@@ -2,10 +2,7 @@ export const useApi = () => {
   const config = useRuntimeConfig()
   const authStore = useAuthStore()
 
-  const baseURL = (config.public.apiBase as string) ||
-    (typeof window !== 'undefined'
-      ? `${window.location.protocol}//${window.location.hostname}:9000/api`
-      : 'http://localhost:9000/api')
+  const baseURL = (config.public.apiBase as string) || '/api'
 
   const apiFetch = async <T>(url: string, options: any = {}): Promise<T> => {
     const headers: Record<string, string> = {

@@ -10,4 +10,4 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
-      - NUXT_PUBLIC_API_BASE=${API_BASE:-http://localhost:90000/api}
+      - NUXT_PUBLIC_API_BASE=${API_BASE:-/api}
