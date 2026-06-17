@@ -71,9 +71,9 @@
 
 <script setup lang="ts">
 import * as pdfjsLib from 'pdfjs-dist'
-import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
+// 禁用 Worker（在主线程运行，无需外部依赖）
+pdfjsLib.GlobalWorkerOptions.workerSrc = ''
 
 const props = defineProps<{
   url: string
