@@ -44,13 +44,6 @@ const ext = computed(() => {
 
 const isOfficeFile = computed(() => ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'].includes(ext.value))
 
-const getApiBase = () => {
-  if (typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:9000/api`
-  }
-  return '/api'
-}
-
 const loadPreview = async () => {
   if (!isOfficeFile.value) {
     loading.value = false
@@ -62,18 +55,11 @@ const loadPreview = async () => {
   previewUrl.value = ''
 
   try {
-    // 从 URL 中提取文件路径
-    let path = props.url
-    if (path.includes('/storage/')) {
-      path = path.split('/storage/')[1] || path
-    }
-    // 去掉开头的斜杠
-    path = path.replace(/^\//, '')
-    // 编码路径
-    const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+    // content_url 格式: academy/dev/documents/xxx.pptx
+    const path = props.url
 
-    const apiBase = getApiBase()
-    const res = await fetch(`${apiBase}/files/preview-office/${encodedPath}`)
+    // 使用相对路径
+    const res = await fetch(`/api/files/preview-office/${path}`)
     const data = await res.json()
 
     if (data.data?.preview_url) {
