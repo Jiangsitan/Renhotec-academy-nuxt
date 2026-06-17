@@ -25,6 +25,7 @@
       @pause="onPause"
       @ended="onEnded"
       @seeking="onSeeking"
+      @seeked="onSeeked"
     ></video>
   </div>
 </template>
@@ -51,6 +52,7 @@ const duration = ref(0)
 const lastSyncTime = ref(0)
 const isPlaying = ref(false)
 const maxWatchedPosition = ref(0) // 跟踪最大观看位置
+const isSeeking = ref(false) // 跟踪是否正在 seeking
 let syncInterval: ReturnType<typeof setInterval> | null = null
 
 const isYouTube = computed(() => {
@@ -85,6 +87,7 @@ const onLoadedMetadata = () => {
 // 快进限制：处理 seeking 事件
 const onSeeking = () => {
   if (!videoRef.value) return
+  isSeeking.value = true
   const currentPos = videoRef.value.currentTime
   // 允许 2 秒误差，防止误操作
   if (currentPos > maxWatchedPosition.value + 2) {
@@ -92,13 +95,18 @@ const onSeeking = () => {
   }
 }
 
+// seeking 完成
+const onSeeked = () => {
+  isSeeking.value = false
+}
+
 const onTimeUpdate = () => {
   if (!videoRef.value) return
   currentTime.value = videoRef.value.currentTime
   duration.value = videoRef.value.duration || 0
 
-  // 更新最大观看位置
-  if (currentTime.value > maxWatchedPosition.value) {
+  // 只在非 seeking 状态下更新最大观看位置
+  if (!isSeeking.value && currentTime.value > maxWatchedPosition.value) {
     maxWatchedPosition.value = currentTime.value
   }
 
