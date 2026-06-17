@@ -119,7 +119,7 @@
               <!-- DOCX/XLSX/PPT 在线预览（Microsoft Office Online） -->
               <div v-else-if="isDocx || isXlsx || isPpt" class="mb-4">
                 <DocumentViewer
-                  :url="previewUrl"
+                  :url="course.content_url"
                   :file-name="course.file_name || ''"
                 />
               </div>
