@@ -102,7 +102,7 @@
               </div>
 
               <!-- PDF 预览（PDF.js 流式渲染） -->
-              <div v-if="isPdf" class="mb-4">
+              <div v-if="isPdf && previewUrl" class="mb-4">
                 <PdfViewer :url="previewUrl" />
               </div>
 

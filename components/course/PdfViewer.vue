@@ -94,6 +94,13 @@ const loadPdf = async () => {
   loading.value = true
   error.value = ''
 
+  // 验证 URL
+  if (!props.url || props.url === '') {
+    error.value = '文档 URL 无效'
+    loading.value = false
+    return
+  }
+
   try {
     // 直接使用 URL 流式加载（不需要下载完整文件）
     const loadingTask = pdfjsLib.getDocument(props.url)
