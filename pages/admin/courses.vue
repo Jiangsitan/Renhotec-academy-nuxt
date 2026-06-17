@@ -569,15 +569,16 @@ const uploadLargeFile = async (file: File) => {
     uploadProgress.value = Math.round(((i + 1) / totalChunks) * 100)
   }
 
-  // 3. 合并完成
+  // 3. 完成上传（异步处理，立即返回）
   const completeRes = await api.post<any>('/admin/upload/complete', { upload_id: uploadId })
 
+  // 立即设置文件信息，允许保存
   uploadedFile.value = completeRes.data
   form.content_url = completeRes.data.path ? '/storage/' + completeRes.data.path : completeRes.data.url
   form.file_name = completeRes.data.file_name
   form.file_size = completeRes.data.file_size
   uploading.value = false
-  toast.add({ title: '文件上传成功', color: 'green' })
+  toast.add({ title: '文件上传成功，正在处理中...', color: 'green' })
 }
 
 const removeFile = () => {
