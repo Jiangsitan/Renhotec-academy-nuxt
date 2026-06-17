@@ -51,7 +51,10 @@
       <!-- 错误状态 -->
       <div v-else-if="error" class="flex flex-col items-center justify-center py-20">
         <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-orange-400 mb-2" />
-        <p class="text-sm text-gray-500">{{ error }}</p>
+        <p class="text-sm text-gray-500 mb-4">加载失败，请联系管理员</p>
+        <button @click="loadPdf" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          刷新重试
+        </button>
       </div>
 
       <!-- Canvas 容器 -->
@@ -92,15 +95,8 @@ const loadPdf = async () => {
   error.value = ''
 
   try {
-    const response = await fetch(props.url)
-    if (!response.ok) {
-      throw new Error(`加载失败: ${response.status} ${response.statusText}`)
-    }
-    const pdfData = new Uint8Array(await response.arrayBuffer())
-
-    if (destroyed) return
-
-    const loadingTask = pdfjsLib.getDocument({ data: pdfData })
+    // 直接使用 URL 流式加载（不需要下载完整文件）
+    const loadingTask = pdfjsLib.getDocument(props.url)
     pdfDoc = await loadingTask.promise
 
     if (destroyed) {
@@ -119,7 +115,7 @@ const loadPdf = async () => {
   } catch (e: any) {
     if (destroyed) return
     console.error('Failed to load PDF:', e)
-    error.value = e?.message || '文档加载失败'
+    error.value = '加载失败，请联系管理员'
     loading.value = false
   }
 }

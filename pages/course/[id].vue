@@ -101,9 +101,9 @@
                 </div>
               </div>
 
-              <!-- PDF 预览（canvas 渲染，无下载按钮） -->
+              <!-- PDF 预览（PDF.js 流式渲染） -->
               <div v-if="isPdf" class="mb-4">
-                <PdfViewer :url="previewUrl" max-height="600px" />
+                <PdfViewer :url="previewUrl" />
               </div>
 
               <!-- 图片预览（禁用右键） -->
@@ -116,24 +116,12 @@
                 />
               </div>
 
-              <!-- DOCX/XLSX 在线预览 -->
-              <div v-else-if="isDocx || isXlsx" class="mb-4">
+              <!-- DOCX/XLSX/PPT 在线预览（Microsoft Office Online） -->
+              <div v-else-if="isDocx || isXlsx || isPpt" class="mb-4">
                 <DocumentViewer
                   :url="previewUrl"
                   :file-name="course.file_name || ''"
                 />
-              </div>
-
-              <!-- TXT 纯文本预览 -->
-              <div v-else-if="isTxt" class="mb-4">
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-[600px] overflow-y-auto">
-                  <pre class="whitespace-pre-wrap text-sm text-gray-700 font-mono">{{ txtContent }}</pre>
-                </div>
-              </div>
-
-              <!-- PPT 预览（转码后 PDF，canvas 渲染，无下载按钮） -->
-              <div v-else-if="isPpt" class="mb-4">
-                <PdfViewer :url="pptPreviewUrl" max-height="600px" />
               </div>
 
               <!-- 其他格式 -->

@@ -6,98 +6,88 @@
       <p class="text-sm text-gray-400 mt-2">文档加载中...</p>
     </div>
 
-    <!-- DOCX 预览 -->
-    <div v-else-if="isDocx" class="p-6 max-h-[700px] overflow-y-auto">
-      <div class="prose prose-sm max-w-none" v-html="docxHtml"></div>
+    <!-- 错误状态 -->
+    <div v-else-if="error" class="p-12 text-center">
+      <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-orange-400 mb-2" />
+      <p class="text-sm text-gray-500 mb-4">加载失败，请联系管理员</p>
+      <button @click="loadPreview" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+        刷新重试
+      </button>
     </div>
 
-    <!-- XLSX 预览 -->
-    <div v-else-if="isXlsx" class="p-4 max-h-[700px] overflow-auto">
-      <div v-for="(sheet, idx) in sheets" :key="idx" class="mb-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-2">{{ sheet.name }}</h3>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-xs border-collapse border border-gray-200">
-            <tr v-for="(row, rIdx) in sheet.data.slice(0, 100)" :key="rIdx" class="border-b border-gray-100">
-              <td
-                v-for="(cell, cIdx) in row"
-                :key="cIdx"
-                class="px-3 py-1.5 border-r border-gray-100 whitespace-nowrap text-gray-900"
-                :class="rIdx === 0 ? 'bg-gray-50 font-semibold' : ''"
-              >
-                {{ cell ?? '' }}
-              </td>
-            </tr>
-          </table>
-          <p v-if="sheet.data.length > 100" class="text-xs text-gray-400 mt-2">
-            显示前 100 行，共 {{ sheet.data.length }} 行
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 其他格式 - 不支持预览 -->
-    <div v-else class="p-12 text-center">
-      <UIcon name="i-heroicons-document-arrow-down" class="w-12 h-12 text-gray-400 mx-auto mb-3" />
-      <p class="text-sm text-gray-600 mb-1">该文件类型不支持在线预览</p>
-      <p class="text-xs text-gray-400 mb-4">请下载后使用对应软件打开</p>
+    <!-- Office 预览 -->
+    <div v-else class="relative" style="height: 700px;">
+      <iframe
+        v-if="previewUrl"
+        :src="previewUrl"
+        style="width: 100%; height: 100%; border: none;"
+        allowfullscreen
+      ></iframe>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import mammoth from 'mammoth'
-import * as XLSX from 'xlsx'
-
 const props = defineProps<{
   url: string
   fileName: string
 }>()
 
 const loading = ref(true)
-const docxHtml = ref('')
-const sheets = ref<{ name: string; data: any[][] }[]>([])
+const error = ref('')
+const previewUrl = ref('')
 
 const ext = computed(() => {
   const name = props.fileName || ''
   return name.split('.').pop()?.toLowerCase() || ''
 })
 
-const isDocx = computed(() => ['doc', 'docx'].includes(ext.value))
-const isXlsx = computed(() => ['xls', 'xlsx'].includes(ext.value))
+const isOfficeFile = computed(() => ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls'].includes(ext.value))
 
-const loadDocument = async () => {
+const getApiBase = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:9000/api`
+  }
+  return '/api'
+}
+
+const loadPreview = async () => {
+  if (!isOfficeFile.value) {
+    loading.value = false
+    return
+  }
+
   loading.value = true
+  error.value = ''
+  previewUrl.value = ''
 
   try {
-    // URL 已包含 token 查询参数，直接 fetch 即可
-    const response = await fetch(props.url)
-    const buffer = await response.arrayBuffer()
+    // 从 URL 中提取文件路径
+    let path = props.url
+    if (path.includes('/storage/')) {
+      path = path.split('/storage/')[1] || path
+    }
+    // 去掉开头的斜杠
+    path = path.replace(/^\//, '')
+    // 编码路径
+    const encodedPath = path.split('/').map(encodeURIComponent).join('/')
 
-    if (isDocx.value) {
-      await renderDOCX(buffer)
-    } else if (isXlsx.value) {
-      await renderXLSX(buffer)
+    const apiBase = getApiBase()
+    const res = await fetch(`${apiBase}/files/preview-office/${encodedPath}`)
+    const data = await res.json()
+
+    if (data.data?.preview_url) {
+      previewUrl.value = data.data.preview_url
+    } else {
+      error.value = data.data?.message || '加载失败，请联系管理员'
     }
   } catch (e) {
-    console.error('Failed to load document:', e)
+    console.error('Failed to load office preview:', e)
+    error.value = '加载失败，请联系管理员'
   } finally {
     loading.value = false
   }
 }
 
-const renderDOCX = async (buffer: ArrayBuffer) => {
-  const result = await mammoth.convertToHtml({ arrayBuffer: buffer })
-  docxHtml.value = result.value
-}
-
-const renderXLSX = async (buffer: ArrayBuffer) => {
-  const workbook = XLSX.read(buffer, { type: 'array' })
-  sheets.value = workbook.SheetNames.map(name => {
-    const sheet = workbook.Sheets[name]
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
-    return { name, data }
-  })
-}
-
-onMounted(loadDocument)
+onMounted(loadPreview)
 </script>
