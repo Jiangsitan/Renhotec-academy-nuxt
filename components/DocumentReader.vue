@@ -59,6 +59,14 @@ let timer: ReturnType<typeof setInterval> | null = null
 let syncInterval: ReturnType<typeof setInterval> | null = null
 let hiddenTime = 0
 
+// 监听 courseId 变化，重置状态（确保用户隔离）
+watch(() => props.courseId, () => {
+  elapsed.value = 0
+  localCompleted.value = false
+  stopTimer()
+  stopSync()
+})
+
 // 合并外部和内部完成状态
 const isCompleted = computed(() => props.completed || localCompleted.value)
 const canComplete = computed(() => {
@@ -162,7 +170,11 @@ const handleComplete = async () => {
 }
 
 onMounted(() => {
-  // 恢复之前的进度
+  // 重置状态（确保用户隔离）
+  elapsed.value = 0
+  localCompleted.value = false
+  
+  // 恢复当前用户的学习进度
   if (props.initialElapsed && props.initialElapsed > 0) {
     elapsed.value = props.initialElapsed
   }

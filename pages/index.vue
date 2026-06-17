@@ -10,13 +10,28 @@
       <button
         v-for="cat in categories"
         :key="cat.id"
-        @click="selectedCategory = cat"
+        @click="selectedCategory = cat; selectedChild = null"
         class="px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all"
         :class="selectedCategory?.id === cat.id
           ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
           : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300 hover:text-primary-600'"
       >
         {{ cat.name }}
+      </button>
+    </div>
+
+    <!-- 二级分类 Tab（如果有子分类） -->
+    <div v-if="currentChildren.length > 0" class="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <button
+        v-for="child in currentChildren"
+        :key="child.id"
+        @click="selectedChild = child"
+        class="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all"
+        :class="selectedChild?.id === child.id
+          ? 'bg-primary-100 text-primary-700 border border-primary-300'
+          : 'bg-gray-50 text-gray-500 border border-gray-200 hover:border-primary-200 hover:text-primary-500'"
+      >
+        {{ child.name }}
       </button>
     </div>
 
@@ -81,13 +96,24 @@ interface CategoryItem {
   id: number
   name: string
   series: SeriesItem[]
+  children?: CategoryItem[]
 }
 
 const categories = ref<CategoryItem[]>([])
 const selectedCategory = ref<CategoryItem | null>(null)
+const selectedChild = ref<CategoryItem | null>(null)
 const loading = ref(true)
 
-const currentSeries = computed(() => selectedCategory.value?.series ?? [])
+const currentChildren = computed(() => selectedCategory.value?.children ?? [])
+
+const currentSeries = computed(() => {
+  // 如果选中了子分类，显示子分类的系列
+  if (selectedChild.value) {
+    return selectedChild.value.series ?? []
+  }
+  // 否则显示父分类的系列
+  return selectedCategory.value?.series ?? []
+})
 
 const loadData = async () => {
   loading.value = true
