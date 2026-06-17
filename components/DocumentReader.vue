@@ -28,7 +28,7 @@
             ? 'bg-green-600 text-white hover:bg-green-700'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
       >
-        {{ completing ? '提交中...' : isCompleted ? '✅ 已完成学习' : '我已学习' }}
+        {{ completing ? '提交中...' : isCompleted ? '✅ 已完成学习' : '未完成学习' }}
       </button>
     </div>
   </div>
