@@ -24,6 +24,7 @@
       @play="onPlay"
       @pause="onPause"
       @ended="onEnded"
+      @seeking="onSeeking"
     ></video>
   </div>
 </template>
@@ -49,6 +50,7 @@ const currentTime = ref(0)
 const duration = ref(0)
 const lastSyncTime = ref(0)
 const isPlaying = ref(false)
+const maxWatchedPosition = ref(0) // 跟踪最大观看位置
 let syncInterval: ReturnType<typeof setInterval> | null = null
 
 const isYouTube = computed(() => {
@@ -72,9 +74,21 @@ const youtubeUrl = computed(() => {
 const onLoadedMetadata = () => {
   if (!videoRef.value) return
   duration.value = videoRef.value.duration
-  // 恢复上次播放位置
+  // 恢复上次播放位置（但不超过最大观看位置）
   if (props.initialPosition && props.initialPosition > 0) {
-    videoRef.value.currentTime = Math.min(props.initialPosition, duration.value - 1)
+    const resumePosition = Math.min(props.initialPosition, duration.value - 1)
+    maxWatchedPosition.value = resumePosition // 同步最大观看位置
+    videoRef.value.currentTime = resumePosition
+  }
+}
+
+// 快进限制：处理 seeking 事件
+const onSeeking = () => {
+  if (!videoRef.value) return
+  const currentPos = videoRef.value.currentTime
+  // 允许 2 秒误差，防止误操作
+  if (currentPos > maxWatchedPosition.value + 2) {
+    videoRef.value.currentTime = maxWatchedPosition.value
   }
 }
 
@@ -82,6 +96,11 @@ const onTimeUpdate = () => {
   if (!videoRef.value) return
   currentTime.value = videoRef.value.currentTime
   duration.value = videoRef.value.duration || 0
+
+  // 更新最大观看位置
+  if (currentTime.value > maxWatchedPosition.value) {
+    maxWatchedPosition.value = currentTime.value
+  }
 
   const percentage = duration.value > 0 ? currentTime.value / duration.value : 0
   emit('progress', {
