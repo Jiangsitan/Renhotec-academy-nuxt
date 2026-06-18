@@ -529,7 +529,7 @@ const uploadSmallFile = async (file: File) => {
   })
 
   uploadedFile.value = res.data
-  form.content_url = res.data.path ? '/storage/' + res.data.path : res.data.url
+  form.content_url = res.data.path || res.data.url
   form.file_name = res.data.file_name
   form.file_size = res.data.file_size
   uploading.value = false
@@ -574,7 +574,7 @@ const uploadLargeFile = async (file: File) => {
 
   // 立即设置文件信息，允许保存
   uploadedFile.value = completeRes.data
-  form.content_url = completeRes.data.path ? '/storage/' + completeRes.data.path : completeRes.data.url
+  form.content_url = completeRes.data.path || completeRes.data.url
   form.file_name = completeRes.data.file_name
   form.file_size = completeRes.data.file_size
   uploading.value = false
