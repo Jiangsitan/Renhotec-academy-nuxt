@@ -128,15 +128,17 @@ const onTimeUpdate = () => {
   const currentPos = videoRef.value.currentTime
   duration.value = videoRef.value.duration || 0
 
-  if (!isSeeking.value) {
-    if (currentPos > maxWatchedPosition.value) {
-      maxWatchedPosition.value = currentPos
-    }
+  // 检测异常跳变（超过 2 秒的前进跳变视为快进）
+  if (!isSeeking.value && currentPos > maxWatchedPosition.value + 2) {
+    // 这是快进操作，回退到最大观看位置
+    videoRef.value.currentTime = maxWatchedPosition.value
+    return
+  }
+
+  // 正常播放，更新最大观看位置
+  if (!isSeeking.value && currentPos > maxWatchedPosition.value) {
+    maxWatchedPosition.value = currentPos
     currentTime.value = currentPos
-  } else {
-    if (currentPos > maxWatchedPosition.value) {
-      videoRef.value.currentTime = maxWatchedPosition.value
-    }
   }
 
   const percentage = duration.value > 0 ? currentTime.value / duration.value : 0
