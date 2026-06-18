@@ -98,8 +98,12 @@ const loadPdf = async () => {
   loading.value = true
   error.value = ''
 
+  // 添加调试日志
+  console.log('PdfViewer: Loading PDF with URL:', props.url)
+
   // 验证 URL
-  if (!props.url || props.url === '') {
+  if (!props.url || props.url === '' || props.url === 'undefined' || props.url === 'null') {
+    console.error('PdfViewer: Invalid URL:', props.url)
     error.value = '文档 URL 无效'
     loading.value = false
     return
