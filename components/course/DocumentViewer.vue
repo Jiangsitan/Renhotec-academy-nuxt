@@ -52,7 +52,7 @@ const ext = computed(() => {
   return name.split('.').pop()?.toLowerCase() || ''
 })
 
-const isOfficeFile = computed(() => ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'odt', 'ods', 'odp'].includes(ext.value))
+const isOfficeFile = computed(() => ['docx', 'doc', 'xlsx', 'xls', 'odt', 'ods', 'odp'].includes(ext.value))
 const isPdfFile = computed(() => ext.value === 'pdf')
 
 const loadPreview = async () => {

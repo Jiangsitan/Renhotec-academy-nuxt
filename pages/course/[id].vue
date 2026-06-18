@@ -405,7 +405,9 @@ const isXlsx = computed(() => {
 
 const isPpt = computed(() => {
   const name = course.value?.file_name || ''
-  return name.toLowerCase().endsWith('.ppt') || name.toLowerCase().endsWith('.pptx')
+  const isPptFile = name.toLowerCase().endsWith('.ppt') || name.toLowerCase().endsWith('.pptx')
+  // 只在 content_type !== 'images' 时返回 true，避免 PPT 文件使用 DocumentViewer 组件
+  return isPptFile && course.value?.content_type !== 'images'
 })
 
 const isPptImages = computed(() => {
