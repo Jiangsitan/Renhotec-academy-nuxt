@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden select-none" @contextmenu.prevent>
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden select-none pdf-viewer" @contextmenu.prevent>
     <!-- 工具栏 -->
     <div v-if="totalPages > 0" class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
       <div class="flex items-center gap-2">
@@ -162,7 +162,9 @@ const loadPdf = async () => {
     // 将相对路径转换为完整 URL
     let fullUrl = props.url
     if (props.url.startsWith('/')) {
-      fullUrl = `${window.location.origin}${props.url}`
+      // 强制使用 HTTPS，避免 Mixed Content 错误
+      const origin = window.location.origin.replace('http://', 'https://')
+      fullUrl = `${origin}${props.url}`
     }
 
     console.log('PdfViewer: Loading PDF with URL:', fullUrl)
@@ -284,7 +286,11 @@ const zoomOut = async () => {
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
+  // 禁用 Ctrl+P（打印）、Ctrl+S（保存）、Ctrl+Shift+I（开发者工具）、F12
+  if (
+    (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p' || e.key === 'i') ||
+    e.key === 'F12'
+  ) {
     e.preventDefault()
   }
 }
@@ -304,3 +310,12 @@ watch(() => props.url, (newUrl) => {
   if (newUrl && !destroyed) loadPdf()
 })
 </script>
+
+<style scoped>
+.pdf-viewer {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+</style>
