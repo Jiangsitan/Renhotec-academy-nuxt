@@ -98,9 +98,6 @@ const loadPdf = async () => {
   loading.value = true
   error.value = ''
 
-  // 添加调试日志
-  console.log('PdfViewer: Loading PDF with URL:', props.url)
-
   // 验证 URL
   if (!props.url || props.url === '' || props.url === 'undefined' || props.url === 'null') {
     console.error('PdfViewer: Invalid URL:', props.url)
@@ -110,14 +107,25 @@ const loadPdf = async () => {
   }
 
   try {
-    // 将相对路径转换为完整 URL（PDF.js 需要完整 URL）
+    // 将相对路径转换为完整 URL
     let fullUrl = props.url
     if (props.url.startsWith('/')) {
       fullUrl = `${window.location.origin}${props.url}`
     }
 
-    // 直接使用 URL 流式加载（不需要下载完整文件）
-    const loadingTask = pdfjsLib.getDocument(fullUrl)
+    console.log('PdfViewer: Loading PDF with URL:', fullUrl)
+
+    // 使用 fetch 获取 PDF 数据，然后通过 blob 加载
+    const response = await fetch(fullUrl)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    const blob = await response.blob()
+    const arrayBuffer = await blob.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+    
+    const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
     pdfDoc = await loadingTask.promise
 
     if (destroyed) {
