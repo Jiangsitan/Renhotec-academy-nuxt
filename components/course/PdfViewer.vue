@@ -110,8 +110,14 @@ const loadPdf = async () => {
   }
 
   try {
+    // 将相对路径转换为完整 URL（PDF.js 需要完整 URL）
+    let fullUrl = props.url
+    if (props.url.startsWith('/')) {
+      fullUrl = `${window.location.origin}${props.url}`
+    }
+
     // 直接使用 URL 流式加载（不需要下载完整文件）
-    const loadingTask = pdfjsLib.getDocument(props.url)
+    const loadingTask = pdfjsLib.getDocument(fullUrl)
     pdfDoc = await loadingTask.promise
 
     if (destroyed) {
