@@ -72,8 +72,12 @@
 <script setup lang="ts">
 import * as pdfjsLib from 'pdfjs-dist'
 
-// 禁用 Worker（在主线程运行，无需外部依赖）
-pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+// 使用本地 Worker 文件（Vite 自动处理）
+const pdfjsWorkerUrl = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).href
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl
 
 const props = defineProps<{
   url: string
