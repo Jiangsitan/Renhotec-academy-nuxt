@@ -106,6 +106,11 @@
                 <PdfViewer :url="previewUrl" />
               </div>
 
+              <!-- PPT 图片预览（WebP 图片序列） -->
+              <div v-else-if="isPptImages" class="mb-4">
+                <PptImageViewer :images="course.images" />
+              </div>
+
               <!-- 图片预览（禁用右键） -->
               <div v-else-if="isImage" class="mb-4" @contextmenu.prevent>
                 <img
@@ -258,6 +263,7 @@ import VideoPlayer from '~/components/VideoPlayer.vue'
 import DocumentReader from '~/components/DocumentReader.vue'
 import DocumentViewer from '~/components/course/DocumentViewer.vue'
 import PdfViewer from '~/components/course/PdfViewer.vue'
+import PptImageViewer from '~/components/course/PptImageViewer.vue'
 import AttachmentDownload from '~/components/course/AttachmentDownload.vue'
 
 definePageMeta({ middleware: 'auth' })
@@ -400,6 +406,13 @@ const isXlsx = computed(() => {
 const isPpt = computed(() => {
   const name = course.value?.file_name || ''
   return name.toLowerCase().endsWith('.ppt') || name.toLowerCase().endsWith('.pptx')
+})
+
+const isPptImages = computed(() => {
+  return course.value?.content_type === 'images' && 
+         course.value?.images && 
+         Array.isArray(course.value.images) && 
+         course.value.images.length > 0
 })
 
 const isTxt = computed(() => {
