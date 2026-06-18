@@ -94,6 +94,58 @@ const scale = ref(1.5)
 let pdfDoc: any = null
 let destroyed = false
 
+// 缓存相关
+const getCachedPdf = async (url: string): Promise<ArrayBuffer | null> => {
+  try {
+    const db = await openDB()
+    return new Promise((resolve) => {
+      const transaction = db.transaction('pdfs', 'readonly')
+      const store = transaction.objectStore('pdfs')
+      const request = store.get(url)
+      request.onsuccess = () => {
+        const result = request.result
+        if (result && Date.now() - result.timestamp < 7 * 24 * 60 * 60 * 1000) {
+          resolve(result.data)
+        } else {
+          resolve(null)
+        }
+      }
+      request.onerror = () => resolve(null)
+    })
+  } catch (e) {
+    return null
+  }
+}
+
+const cachePdf = async (url: string, data: ArrayBuffer): Promise<void> => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction('pdfs', 'readwrite')
+    const store = transaction.objectStore('pdfs')
+    store.put({
+      url,
+      data,
+      timestamp: Date.now()
+    })
+  } catch (e) {
+    console.error('Failed to cache PDF:', e)
+  }
+}
+
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('pdf-cache', 1)
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result
+      if (!db.objectStoreNames.contains('pdfs')) {
+        db.createObjectStore('pdfs', { keyPath: 'url' })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+}
+
 const loadPdf = async () => {
   loading.value = true
   error.value = ''
@@ -115,18 +167,28 @@ const loadPdf = async () => {
 
     console.log('PdfViewer: Loading PDF with URL:', fullUrl)
 
-    // 使用 fetch 获取 PDF 数据，然后通过 blob 加载
-    const response = await fetch(fullUrl)
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    // 1. 检查本地缓存
+    const cached = await getCachedPdf(fullUrl)
+    if (cached) {
+      console.log('PdfViewer: Using cached PDF')
+      const loadingTask = pdfjsLib.getDocument({ data: cached })
+      pdfDoc = await loadingTask.promise
+    } else {
+      // 2. 流式加载
+      console.log('PdfViewer: Fetching PDF from network')
+      const response = await fetch(fullUrl)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const arrayBuffer = await response.arrayBuffer()
+      
+      // 3. 缓存到本地
+      await cachePdf(fullUrl, arrayBuffer)
+      
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+      pdfDoc = await loadingTask.promise
     }
-    
-    const blob = await response.blob()
-    const arrayBuffer = await blob.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
-    
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
-    pdfDoc = await loadingTask.promise
 
     if (destroyed) {
       pdfDoc = null
@@ -166,9 +228,32 @@ const renderPage = async (pageNum: number) => {
     canvas.width = viewport.width
 
     await page.render({ canvasContext: ctx, viewport }).promise
+
+    // 预加载下一页
+    preloadNextPage(pageNum)
   } catch (e: any) {
     if (destroyed) return
     console.error('Failed to render page:', e)
+  }
+}
+
+// 预加载下一页
+const preloadNextPage = async (currentPageNum: number) => {
+  if (!pdfDoc || currentPageNum >= totalPages.value) return
+  
+  try {
+    const nextPage = await pdfDoc.getPage(currentPageNum + 1)
+    // 预渲染到隐藏 canvas
+    const viewport = nextPage.getViewport({ scale: 0.5 }) // 小尺寸预加载
+    const offscreen = document.createElement('canvas')
+    offscreen.width = viewport.width
+    offscreen.height = viewport.height
+    const ctx = offscreen.getContext('2d')
+    if (ctx) {
+      await nextPage.render({ canvasContext: ctx, viewport }).promise
+    }
+  } catch (e) {
+    // 预加载失败不影响正常使用
   }
 }
 
