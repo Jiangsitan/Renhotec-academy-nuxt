@@ -42,6 +42,12 @@ const error = ref('')
 const pdfUrl = ref('')
 
 const ext = computed(() => {
+  // 优先从 url 判断，因为 url 是实际文件路径
+  const urlPath = props.url || ''
+  const urlExt = urlPath.split('.').pop()?.toLowerCase() || ''
+  if (urlExt === 'pdf') return 'pdf'
+  
+  // 如果 url 不是 pdf，则从 fileName 判断
   const name = props.fileName || ''
   return name.split('.').pop()?.toLowerCase() || ''
 })
@@ -55,8 +61,8 @@ const loadPreview = async () => {
   pdfUrl.value = ''
 
   try {
-    // 如果是 PDF 文件，直接预览
-    if (isPdfFile.value) {
+    // 如果是 PDF 文件（根据 url 或 fileName 判断），直接预览
+    if (isPdfFile.value || props.url?.endsWith('.pdf')) {
       pdfUrl.value = props.url
       loading.value = false
       return
