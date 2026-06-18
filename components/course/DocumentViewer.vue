@@ -58,8 +58,14 @@ const loadPreview = async () => {
     // content_url 格式: academy/dev/documents/xxx.pptx
     const path = props.url
 
-    // 使用相对路径
-    const res = await fetch(`/api/files/preview-office/${path}`)
+    // 使用相对路径，添加认证 token
+    const token = localStorage.getItem('token')
+    const res = await fetch(`/api/files/preview-office/${path}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
     const data = await res.json()
 
     if (data.data?.preview_url) {
