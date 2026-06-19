@@ -108,7 +108,7 @@
 
               <!-- PPT 图片预览（WebP 图片序列） -->
               <div v-else-if="isPptImages" class="mb-4">
-                <PptImageViewer :images="course.images" />
+                <PptImageViewer :images="parsedImages" />
               </div>
 
               <!-- 图片预览（禁用右键） -->
@@ -411,10 +411,20 @@ const isPpt = computed(() => {
 })
 
 const isPptImages = computed(() => {
-  return course.value?.content_type === 'images' && 
-         course.value?.images && 
-         Array.isArray(course.value.images) && 
-         course.value.images.length > 0
+  const images = course.value?.images
+  if (!images || course.value?.content_type !== 'images') return false
+  
+  // 兼容处理：images 可能是字符串或数组
+  const parsed = typeof images === 'string' ? JSON.parse(images) : images
+  return Array.isArray(parsed) && parsed.length > 0
+})
+
+const parsedImages = computed(() => {
+  const images = course.value?.images
+  if (!images) return []
+  
+  // 兼容处理：images 可能是字符串或数组
+  return typeof images === 'string' ? JSON.parse(images) : images
 })
 
 const isTxt = computed(() => {
