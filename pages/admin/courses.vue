@@ -393,6 +393,7 @@ const uploadingTotal = ref(0)
 const form = reactive({
   title: '', description: '', series_id: '', mentor_id: '', type: 'video',
   content_source: 'online', content_url: '',
+  content_type: 'pdf', images: null as string[] | null,
   file_name: '', file_size: 0,
   min_read_time: 30, duration: 0, sort_order: 0,
 })
@@ -530,6 +531,8 @@ const uploadSmallFile = async (file: File) => {
 
   uploadedFile.value = res.data
   form.content_url = res.data.path || res.data.url
+  form.content_type = res.data.content_type || 'pdf'
+  form.images = res.data.images || null
   form.file_name = res.data.file_name
   form.file_size = res.data.file_size
   uploading.value = false
@@ -575,6 +578,8 @@ const uploadLargeFile = async (file: File) => {
   // 立即设置文件信息，允许保存
   uploadedFile.value = completeRes.data
   form.content_url = completeRes.data.path || completeRes.data.url
+  form.content_type = completeRes.data.content_type || 'pdf'
+  form.images = completeRes.data.images || null
   form.file_name = completeRes.data.file_name
   form.file_size = completeRes.data.file_size
   uploading.value = false
