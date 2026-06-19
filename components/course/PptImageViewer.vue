@@ -84,9 +84,25 @@ const currentPage = ref(1)
 const scale = ref(1)
 const imageLoaded = ref(false)
 
+// OSS 基础 URL
+const ossBaseUrl = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+
+// 将相对路径转换为完整 OSS URL
+const getOssUrl = (path: string): string => {
+  if (!path) return ''
+  // 如果已经是完整 URL，直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+  // 移除开头的斜杠
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  return `${ossBaseUrl}/${cleanPath}`
+}
+
 const currentImage = computed(() => {
   if (props.images && props.images.length > 0) {
-    return props.images[currentPage.value - 1]
+    const path = props.images[currentPage.value - 1]
+    return getOssUrl(path)
   }
   return null
 })
