@@ -59,12 +59,22 @@ let timer: ReturnType<typeof setInterval> | null = null
 let syncInterval: ReturnType<typeof setInterval> | null = null
 let hiddenTime = 0
 
-// 监听 courseId 变化，重置状态（确保用户隔离）
-watch(() => props.courseId, () => {
-  elapsed.value = 0
-  localCompleted.value = false
-  stopTimer()
-  stopSync()
+// 监听 courseId 变化，重置状态并重新启动计时器（确保用户隔离）
+watch(() => props.courseId, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    elapsed.value = 0
+    localCompleted.value = false
+    stopTimer()
+    stopSync()
+
+    // 延迟启动计时器，确保组件完全挂载
+    nextTick(() => {
+      if (!isCompleted.value && props.autoStart !== false) {
+        startTimer()
+        startSync()
+      }
+    })
+  }
 })
 
 // 合并外部和内部完成状态
@@ -179,12 +189,14 @@ onMounted(() => {
     elapsed.value = props.initialElapsed
   }
 
-  // 只有 autoStart 为 true 时才自动启动
-  if (!isCompleted.value && props.autoStart !== false) {
-    startTimer()
-    startSync()
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-  }
+  // 延迟启动计时器，确保组件完全挂载
+  nextTick(() => {
+    if (!isCompleted.value && props.autoStart !== false) {
+      startTimer()
+      startSync()
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+  })
 })
 
 onBeforeUnmount(() => {
