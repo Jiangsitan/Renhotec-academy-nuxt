@@ -94,6 +94,7 @@ const displayPercent = computed(() => {
 
 const startTimer = () => {
   stopTimer()
+  console.log('[DocumentReader] startTimer called', { courseId: props.courseId })
   timer = setInterval(() => {
     if (!isPaused.value) {
       elapsed.value++
@@ -103,6 +104,7 @@ const startTimer = () => {
 
 const stopTimer = () => {
   if (timer) {
+    console.log('[DocumentReader] stopTimer called')
     clearInterval(timer)
     timer = null
   }
@@ -124,7 +126,12 @@ const stopSync = () => {
 }
 
 const syncProgress = () => {
-  if (isCompleted.value || elapsed.value <= 0) return
+  if (isCompleted.value || elapsed.value <= 0) {
+    console.log('[DocumentReader] syncProgress skipped', { isCompleted: isCompleted.value, elapsed: elapsed.value })
+    return
+  }
+
+  console.log('[DocumentReader] syncProgress called', { courseId: props.courseId, elapsed: elapsed.value })
 
   api.post('/learning/progress/sync', {
     course_id: props.courseId,
@@ -180,6 +187,15 @@ const handleComplete = async () => {
 }
 
 onMounted(() => {
+  console.log('[DocumentReader] onMounted', {
+    courseId: props.courseId,
+    minReadTime: props.minReadTime,
+    completed: props.completed,
+    autoStart: props.autoStart,
+    initialElapsed: props.initialElapsed,
+    isCompleted: isCompleted.value,
+  })
+
   // 重置状态（确保用户隔离）
   elapsed.value = 0
   localCompleted.value = false
@@ -191,6 +207,11 @@ onMounted(() => {
 
   // 使用 setTimeout 确保组件完全水合后再启动计时器
   setTimeout(() => {
+    console.log('[DocumentReader] setTimeout callback', {
+      isCompleted: isCompleted.value,
+      autoStart: props.autoStart,
+      shouldStart: !isCompleted.value && props.autoStart !== false,
+    })
     if (!isCompleted.value && props.autoStart !== false) {
       startTimer()
       startSync()
