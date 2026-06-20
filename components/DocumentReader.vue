@@ -67,13 +67,13 @@ watch(() => props.courseId, (newId, oldId) => {
     stopTimer()
     stopSync()
 
-    // 延迟启动计时器，确保组件完全挂载
-    nextTick(() => {
+    // 使用 setTimeout 确保组件完全水合后再启动计时器
+    setTimeout(() => {
       if (!isCompleted.value && props.autoStart !== false) {
         startTimer()
         startSync()
       }
-    })
+    }, 100)
   }
 })
 
@@ -189,14 +189,14 @@ onMounted(() => {
     elapsed.value = props.initialElapsed
   }
 
-  // 延迟启动计时器，确保组件完全挂载
-  nextTick(() => {
+  // 使用 setTimeout 确保组件完全水合后再启动计时器
+  setTimeout(() => {
     if (!isCompleted.value && props.autoStart !== false) {
       startTimer()
       startSync()
       document.addEventListener('visibilitychange', handleVisibilityChange)
     }
-  })
+  }, 100)
 })
 
 onBeforeUnmount(() => {
