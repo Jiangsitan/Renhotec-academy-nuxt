@@ -154,6 +154,14 @@
                 <div class="h-full bg-primary-500 rounded-full transition-all duration-300" :style="{ width: `${uploadProgress}%` }" />
               </div>
             </div>
+
+            <!-- 转换进度 -->
+            <div v-if="converting" class="mt-3">
+              <div class="flex items-center gap-2 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+                <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-blue-600 animate-spin" />
+                <span class="text-sm text-blue-700">文件转换中，请稍候...</span>
+              </div>
+            </div>
           </div>
 
           <!-- 其他设置 -->
@@ -200,7 +208,7 @@
         <template #footer>
           <div class="flex justify-end gap-3">
             <UButton color="gray" label="取消" @click="showModal = false" />
-            <UButton :label="editing ? '保存' : '创建'" :loading="saving" @click="handleSubmit" />
+            <UButton :label="editing ? '保存' : '创建'" :loading="saving" :disabled="converting" @click="handleSubmit" />
           </div>
         </template>
       </UCard>
@@ -377,6 +385,8 @@ const uploadProgress = ref(0)
 const isDragging = ref(false)
 const uploadedFile = ref<{ url: string; path: string; file_name: string; file_size: number } | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const converting = ref(false)
+const convertingPath = ref<string | null>(null)
 
 // 附件上传相关
 const showAttachmentModal = ref(false)
@@ -536,7 +546,49 @@ const uploadSmallFile = async (file: File) => {
   form.file_name = res.data.file_name
   form.file_size = res.data.file_size
   uploading.value = false
-  toast.add({ title: '文件上传成功', color: 'green' })
+
+  // 如果文件需要异步转换，启动轮询
+  if (res.data.converting) {
+    converting.value = true
+    convertingPath.value = res.data.path
+    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+    pollConversionStatus(res.data.path)
+  } else {
+    toast.add({ title: '文件上传成功', color: 'green' })
+  }
+}
+
+const pollConversionStatus = async (path: string) => {
+  const maxAttempts = 60 // 最多轮询 5 分钟（每 5 秒一次）
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(resolve => setTimeout(resolve, 5000))
+
+    try {
+      const res = await api.apiFetch<any>('/admin/upload/conversion-status', {
+        params: { path }
+      })
+
+      if (res.data.converted) {
+        // 转换完成，更新表单
+        form.content_type = res.data.content_type
+        form.images = res.data.images
+        if (res.data.content_url) {
+          form.content_url = res.data.content_url
+        }
+        converting.value = false
+        convertingPath.value = null
+        toast.add({ title: '文件转换完成', color: 'green' })
+        return true
+      }
+    } catch (e) {
+      console.error('查询转换状态失败:', e)
+    }
+  }
+
+  converting.value = false
+  convertingPath.value = null
+  toast.add({ title: '文件转换超时，请稍后刷新页面', color: 'orange' })
+  return false
 }
 
 const uploadLargeFile = async (file: File) => {
@@ -583,7 +635,18 @@ const uploadLargeFile = async (file: File) => {
   form.file_name = completeRes.data.file_name
   form.file_size = completeRes.data.file_size
   uploading.value = false
-  toast.add({ title: '文件上传成功，正在处理中...', color: 'green' })
+
+  // 分片上传的文件也需要异步转换（PPT 等）
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  const convertibleExts = ['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx']
+  if (convertibleExts.includes(ext)) {
+    converting.value = true
+    convertingPath.value = completeRes.data.path
+    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+    pollConversionStatus(completeRes.data.path)
+  } else {
+    toast.add({ title: '文件上传成功，正在处理中...', color: 'green' })
+  }
 }
 
 const removeFile = () => {
@@ -591,6 +654,8 @@ const removeFile = () => {
   form.content_url = ''
   form.file_name = ''
   form.file_size = 0
+  converting.value = false
+  convertingPath.value = null
 }
 
 // 附件管理方法
@@ -627,6 +692,7 @@ const uploadAttachmentFiles = async (files: File[]) => {
   uploadingAttachment.value = true
   uploadingTotal.value = files.length
   uploadingIndex.value = 0
+  let convertingCount = 0
 
   for (let i = 0; i < files.length; i++) {
     uploadingIndex.value = i
@@ -644,6 +710,9 @@ const uploadAttachmentFiles = async (files: File[]) => {
       })
 
       uploadedAttachments.value.push(res.data)
+      if (res.data.converting) {
+        convertingCount++
+      }
     } catch (e: any) {
       toast.add({ title: `文件 ${files[i].name} 上传失败: ${e?.data?.message || '上传失败'}`, color: 'red' })
     }
@@ -651,7 +720,12 @@ const uploadAttachmentFiles = async (files: File[]) => {
 
   attachmentProgress.value = 100
   uploadingAttachment.value = false
-  toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功`, color: 'green' })
+
+  if (convertingCount > 0) {
+    toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功，${convertingCount} 个正在后台转换`, color: 'blue' })
+  } else {
+    toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功`, color: 'green' })
+  }
 }
 
 const removeAttachmentFile = (index: number) => {
