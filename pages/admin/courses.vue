@@ -550,14 +550,6 @@ const formatDuration = (seconds: number) => {
   return m > 0 ? `${m} 分 ${s} 秒` : `${s} 秒`
 }
 
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-}
-
 const uploadFile = async (file: File) => {
   const isVideo = form.type === 'video'
   const isLargeFile = file.size > 10 * 1024 * 1024 // 10MB 以上用分片上传
