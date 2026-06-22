@@ -681,7 +681,7 @@ const uploadSmallFile = async (file: File) => {
 }
 
 const pollConversionStatus = async (path: string) => {
-  const maxAttempts = 60 // 最多轮询 5 分钟（每 5 秒一次）
+  const maxAttempts = 120 // 最多轮询 10 分钟（每 5 秒一次）
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(resolve => setTimeout(resolve, 5000))
 
