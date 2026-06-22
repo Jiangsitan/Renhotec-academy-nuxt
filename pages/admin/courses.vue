@@ -181,7 +181,7 @@
             <div v-if="converting" class="mt-3">
               <div class="flex items-center gap-2 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-lg">
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-blue-600 animate-spin" />
-                <span class="text-sm text-blue-700">文件转换中，请稍候...</span>
+                <span class="text-sm text-blue-700">文件压缩中，请稍候...</span>
               </div>
             </div>
           </div>
