@@ -108,7 +108,10 @@
               共 {{ questions.length }} 题，总分 {{ totalScore }} 分
               <span v-if="totalScore > 100" class="text-xs">（已超过 100 分）</span>
             </p>
-            <UButton icon="i-heroicons-plus" label="添加题目" size="sm" @click="openQuestionForm()" />
+            <div class="flex gap-2">
+              <UButton color="gray" icon="i-heroicons-arrow-up-tray" label="从 Word 导入" size="sm" @click="showWordImportModal = true" />
+              <UButton icon="i-heroicons-plus" label="添加题目" size="sm" @click="openQuestionForm()" />
+            </div>
           </div>
 
           <!-- 题目列表 -->
@@ -228,8 +231,93 @@
                 <UButton :label="editingQuestionIndex !== null ? '保存' : '添加'" :loading="savingQuestion" @click="handleQuestionSubmit" />
               </div>
             </template>
-          </UCard>
-        </UModal>
+      </UCard>
+    </UModal>
+
+    <!-- Word 导入弹窗 -->
+    <UModal v-model="showWordImportModal" :prevent-close="wordImporting">
+      <UCard>
+        <template #header>
+          <h3 class="text-base font-semibold">从 Word 导入题目</h3>
+        </template>
+
+        <div class="space-y-4">
+          <!-- 下载模板 -->
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p class="text-sm font-medium text-gray-700">下载 Word 模板</p>
+              <p class="text-xs text-gray-500">请按模板格式填写题目后上传</p>
+            </div>
+            <UButton color="gray" size="sm" icon="i-heroicons-arrow-down-tray" label="下载模板" @click="downloadWordTemplate" />
+          </div>
+
+          <!-- 已上传文件 -->
+          <div v-if="wordImportFile" class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <UIcon name="i-heroicons-document-check" class="w-5 h-5 text-green-600" />
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-green-700 truncate">{{ wordImportFile.name }}</div>
+              <div class="text-xs text-green-600">{{ formatFileSize(wordImportFile.size) }}</div>
+            </div>
+            <UButton color="red" variant="ghost" icon="i-heroicons-x-mark" size="xs" @click="wordImportFile = null" />
+          </div>
+
+          <!-- 上传区域 -->
+          <div
+            v-else
+            @click="triggerWordImportInput"
+            @dragover.prevent="isDraggingWordImport = true"
+            @dragleave="isDraggingWordImport = false"
+            @drop.prevent="handleWordImportDrop"
+            class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
+            :class="isDraggingWordImport ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'"
+          >
+            <UIcon name="i-heroicons-cloud-arrow-up" class="w-10 h-10 text-gray-400 mx-auto mb-3" />
+            <p class="text-sm text-gray-600">
+              拖拽 Word 文件到此处，或 <span class="text-primary-600 font-medium">点击选择文件</span>
+            </p>
+            <p class="text-xs text-gray-400 mt-2">支持 .docx 格式，最大 20MB</p>
+          </div>
+          <input ref="wordImportInputRef" type="file" accept=".docx" class="hidden" @change="handleWordImportSelect" />
+
+          <!-- 导入进度 -->
+          <div v-if="wordImporting" class="text-center py-4">
+            <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-primary-500 animate-spin mx-auto mb-2" />
+            <p class="text-sm text-gray-600">正在导入，请稍候...</p>
+          </div>
+
+          <!-- 导入结果 -->
+          <div v-if="wordImportResult" class="space-y-3">
+            <div class="flex items-center gap-3 p-3 rounded-lg" :class="wordImportResult.failed > 0 ? 'bg-orange-50 border border-orange-200' : 'bg-green-50 border border-green-200'">
+              <UIcon :name="wordImportResult.failed > 0 ? 'i-heroicons-exclamation-triangle' : 'i-heroicons-check-circle'" class="w-5 h-5" :class="wordImportResult.failed > 0 ? 'text-orange-600' : 'text-green-600'" />
+              <div class="text-sm">
+                <span class="font-medium text-green-700">成功导入 {{ wordImportResult.created }} 道题目</span>
+                <span v-if="wordImportResult.failed > 0" class="text-orange-700 ml-3">失败 {{ wordImportResult.failed }} 条</span>
+              </div>
+            </div>
+
+            <!-- 预览导入的题目 -->
+            <div v-if="wordImportResult.questions?.length" class="max-h-64 overflow-y-auto space-y-2">
+              <div v-for="(q, idx) in wordImportResult.questions" :key="idx" class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-sm font-medium text-gray-500">#{{ idx + 1 }}</span>
+                  <UBadge :label="typeLabel(q.type)" size="xs" variant="subtle" />
+                  <span class="text-sm text-gray-500">{{ q.score }} 分</span>
+                </div>
+                <p class="text-sm text-gray-700">{{ q.content }}</p>
+                <p v-if="q.correct_answer" class="text-xs text-gray-500 mt-1">答案：{{ q.correct_answer }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="gray" label="关闭" @click="closeWordImportModal" />
+            <UButton label="开始导入" :loading="wordImporting" :disabled="!wordImportFile" @click="handleWordImport" />
+          </div>
+        </template>
+      </UCard>
+    </UModal>
       </UCard>
     </UModal>
 
@@ -905,6 +993,97 @@ const closeExamImportModal = () => {
   showImportModal.value = false
   importFile.value = null
   importResult.value = null
+}
+
+// ==================== Word 导入 ====================
+
+const showWordImportModal = ref(false)
+const wordImporting = ref(false)
+const wordImportFile = ref<File | null>(null)
+const wordImportInputRef = ref<HTMLInputElement | null>(null)
+const isDraggingWordImport = ref(false)
+const wordImportResult = ref<{ created: number; failed: number; questions: any[] } | null>(null)
+
+const downloadWordTemplate = async () => {
+  try {
+    const res = await api.get<any>('/admin/exams/import/word-template')
+    // 显示模板说明
+    toast.add({ title: '请按照模板格式准备 Word 文档', color: 'blue' })
+  } catch (e: any) {
+    toast.add({ title: e?.message || '下载失败', color: 'red' })
+  }
+}
+
+const triggerWordImportInput = () => { wordImportInputRef.value?.click() }
+
+const handleWordImportSelect = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  if (input.files?.length) {
+    const file = input.files[0]
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'docx') {
+      toast.add({ title: '请选择 .docx 文件', color: 'red' })
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.add({ title: '文件大小不能超过 20MB', color: 'red' })
+      return
+    }
+    wordImportFile.value = file
+    wordImportResult.value = null
+  }
+}
+
+const handleWordImportDrop = (e: DragEvent) => {
+  isDraggingWordImport.value = false
+  const files = e.dataTransfer?.files
+  if (files?.length) {
+    const file = files[0]
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'docx') {
+      toast.add({ title: '请选择 .docx 文件', color: 'red' })
+      return
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.add({ title: '文件大小不能超过 20MB', color: 'red' })
+      return
+    }
+    wordImportFile.value = file
+    wordImportResult.value = null
+  }
+}
+
+const handleWordImport = async () => {
+  if (!wordImportFile.value || !editingExam.value) return
+  wordImporting.value = true
+  wordImportResult.value = null
+
+  try {
+    const formData = new FormData()
+    formData.append('file', wordImportFile.value)
+
+    const res = await api.apiFetch<any>(`/admin/exams/${editingExam.value.id}/import/word`, {
+      method: 'POST',
+      body: formData,
+      headers: { 'Content-Type': undefined },
+    })
+
+    wordImportResult.value = res.data
+    toast.add({ title: res.message, color: 'green' })
+    
+    // 重新加载题目列表
+    const questionsRes = await api.get<any>(`/admin/exams/${editingExam.value.id}/questions`)
+    questions.value = questionsRes.data.map((q: any) => ({ ...q, _temp_id: q.id }))
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '导入失败', color: 'red' })
+  }
+  wordImporting.value = false
+}
+
+const closeWordImportModal = () => {
+  showWordImportModal.value = false
+  wordImportFile.value = null
+  wordImportResult.value = null
 }
 
 onMounted(() => loadExams())
