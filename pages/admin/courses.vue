@@ -824,8 +824,6 @@ const cancelUpload = () => {
   canCancel.value = false
   currentUploadId.value = null
 }
-  convertingPath.value = null
-}
 
 // 附件管理方法
 const loadAttachments = async (courseId: number) => {
