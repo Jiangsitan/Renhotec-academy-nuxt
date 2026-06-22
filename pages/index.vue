@@ -10,7 +10,7 @@
       <button
         v-for="cat in categories"
         :key="cat.id"
-        @click="selectedCategory = cat; selectedChild = null"
+        @click="selectedCategory = cat; selectedChild = cat.children?.[0] ?? null"
         class="px-5 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all"
         :class="selectedCategory?.id === cat.id
           ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
@@ -122,6 +122,10 @@ const loadData = async () => {
     categories.value = res.data
     if (categories.value.length > 0) {
       selectedCategory.value = categories.value[0]
+      // 如果有子分类，默认选中第一个子分类
+      if (selectedCategory.value.children && selectedCategory.value.children.length > 0) {
+        selectedChild.value = selectedCategory.value.children[0]
+      }
     }
   } catch (e) {
     console.error('加载首页数据失败:', e)
