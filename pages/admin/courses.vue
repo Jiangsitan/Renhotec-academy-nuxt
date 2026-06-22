@@ -147,11 +147,33 @@
             <!-- 上传进度 -->
             <div v-if="uploading" class="mt-3">
               <div class="flex items-center justify-between text-sm mb-1.5">
-                <span class="text-gray-600">上传中...</span>
-                <span class="font-medium text-primary-600">{{ uploadProgress }}%</span>
+                <span class="text-gray-600">
+                  上传中
+                  <span class="text-gray-400 ml-1">{{ uploadProgress }}%</span>
+                </span>
+                <div class="flex items-center gap-2">
+                  <span v-if="uploadSpeed > 0" class="text-xs text-gray-400">
+                    {{ formatFileSize(uploadSpeed) }}/s
+                  </span>
+                  <button 
+                    v-if="canCancel"
+                    @click="confirmCancelUpload" 
+                    class="text-xs text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    取消
+                  </button>
+                </div>
               </div>
-              <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div class="h-full bg-primary-500 rounded-full transition-all duration-300" :style="{ width: `${uploadProgress}%` }" />
+              <div class="h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  class="h-full rounded-full transition-all duration-300 ease-out"
+                  :class="uploadProgress === 100 ? 'bg-green-500' : 'bg-primary-500'"
+                  :style="{ width: `${uploadProgress}%` }" 
+                />
+              </div>
+              <div v-if="uploadProgress === 100" class="flex items-center gap-1.5 mt-2">
+                <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-green-500" />
+                <span class="text-sm text-green-600">上传完成</span>
               </div>
             </div>
 
@@ -356,6 +378,28 @@
         </template>
       </UCard>
     </UModal>
+
+    <!-- 取消上传确认弹窗 -->
+    <UModal v-model="showCancelConfirm">
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-orange-500" />
+            <span class="font-semibold">确认取消上传</span>
+          </div>
+        </template>
+        
+        <p class="text-gray-600">确定要取消当前文件上传吗？</p>
+        <p class="text-sm text-gray-400 mt-2">取消后已上传的部分将被清除，需要重新上传。</p>
+        
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="gray" label="继续上传" @click="showCancelConfirm = false" />
+            <UButton color="red" label="确认取消" @click="cancelUpload" />
+          </div>
+        </template>
+      </UCard>
+    </UModal>
   </div>
 </template>
 
@@ -382,11 +426,16 @@ const mentorOptions = ref<any[]>([])
 // 上传相关
 const uploading = ref(false)
 const uploadProgress = ref(0)
+const uploadSpeed = ref(0)
 const isDragging = ref(false)
 const uploadedFile = ref<{ url: string; path: string; file_name: string; file_size: number } | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const converting = ref(false)
 const convertingPath = ref<string | null>(null)
+const currentXhr = ref<XMLHttpRequest | null>(null)
+const canCancel = ref(false)
+const showCancelConfirm = ref(false)
+const currentUploadId = ref<string | null>(null)
 
 // 附件上传相关
 const showAttachmentModal = ref(false)
@@ -501,12 +550,22 @@ const formatDuration = (seconds: number) => {
   return m > 0 ? `${m} 分 ${s} 秒` : `${s} 秒`
 }
 
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 const uploadFile = async (file: File) => {
   const isVideo = form.type === 'video'
-  const isLargeFile = file.size > 50 * 1024 * 1024 // 50MB 以上用分片上传
+  const isLargeFile = file.size > 10 * 1024 * 1024 // 10MB 以上用分片上传
 
   uploading.value = true
   uploadProgress.value = 0
+  uploadSpeed.value = 0
+  canCancel.value = true
 
   // 视频文件自动读取时长
   if (isVideo) {
@@ -518,47 +577,115 @@ const uploadFile = async (file: File) => {
   }
 
   try {
-    if (isLargeFile && isVideo) {
-      // 分片上传（大视频文件）
+    if (isLargeFile) {
+      // 分片上传（所有大文件）
       await uploadLargeFile(file)
     } else {
-      // 普通上传（文档/小文件）
+      // 普通上传（小文件，带进度）
       await uploadSmallFile(file)
     }
   } catch (e: any) {
-    toast.add({ title: e?.data?.message || '上传失败', color: 'red' })
+    if (e.message === 'cancelled') {
+      toast.add({ title: '上传已取消', color: 'orange' })
+    } else {
+      toast.add({ title: e?.data?.message || e?.message || '上传失败', color: 'red' })
+    }
     uploading.value = false
   }
 }
 
 const uploadSmallFile = async (file: File) => {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('type', form.type)
+  return new Promise((resolve, reject) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('type', form.type)
 
-  const res = await api.apiFetch<any>('/admin/upload/file', {
-    method: 'POST',
-    body: formData,
-    headers: { 'Content-Type': undefined }, // 让浏览器自动设置 multipart/form-data
+    const xhr = new XMLHttpRequest()
+    const authStore = useAuthStore()
+    currentXhr.value = xhr
+
+    let lastLoaded = 0
+    let lastTime = Date.now()
+
+    // 监听上传进度
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const now = Date.now()
+        const timeDiff = (now - lastTime) / 1000
+        
+        if (timeDiff > 0.5) {
+          const loadedDiff = e.loaded - lastLoaded
+          uploadSpeed.value = Math.round(loadedDiff / timeDiff)
+          lastLoaded = e.loaded
+          lastTime = now
+        }
+        
+        uploadProgress.value = Math.round((e.loaded / e.total) * 100)
+      }
+    })
+
+    // 监听完成
+    xhr.addEventListener('load', () => {
+      currentXhr.value = null
+      canCancel.value = false
+      
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const res = JSON.parse(xhr.responseText)
+        
+        uploadedFile.value = res.data
+        form.content_url = res.data.path || res.data.url
+        form.content_type = res.data.content_type || 'pdf'
+        form.images = res.data.images || null
+        form.file_name = res.data.file_name
+        form.file_size = res.data.file_size
+        uploading.value = false
+        uploadProgress.value = 100
+
+        if (res.data.converting) {
+          converting.value = true
+          convertingPath.value = res.data.path
+          toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+          pollConversionStatus(res.data.path)
+        } else {
+          toast.add({ title: '文件上传成功', color: 'green' })
+        }
+        resolve(res)
+      } else {
+        let errorMsg = '上传失败'
+        try {
+          const error = JSON.parse(xhr.responseText)
+          errorMsg = error.message || errorMsg
+        } catch {}
+        reject(new Error(errorMsg))
+      }
+    })
+
+    // 监听错误
+    xhr.addEventListener('error', () => {
+      currentXhr.value = null
+      canCancel.value = false
+      reject(new Error('网络错误'))
+    })
+
+    // 监听超时
+    xhr.addEventListener('timeout', () => {
+      currentXhr.value = null
+      canCancel.value = false
+      reject(new Error('上传超时'))
+    })
+
+    // 监听取消
+    xhr.addEventListener('abort', () => {
+      currentXhr.value = null
+      canCancel.value = false
+      reject(new Error('cancelled'))
+    })
+
+    xhr.open('POST', '/api/admin/upload/file')
+    xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
+    xhr.timeout = 300000 // 5 分钟超时
+    xhr.send(formData)
   })
-
-  uploadedFile.value = res.data
-  form.content_url = res.data.path || res.data.url
-  form.content_type = res.data.content_type || 'pdf'
-  form.images = res.data.images || null
-  form.file_name = res.data.file_name
-  form.file_size = res.data.file_size
-  uploading.value = false
-
-  // 如果文件需要异步转换，启动轮询
-  if (res.data.converting) {
-    converting.value = true
-    convertingPath.value = res.data.path
-    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
-    pollConversionStatus(res.data.path)
-  } else {
-    toast.add({ title: '文件上传成功', color: 'green' })
-  }
 }
 
 const pollConversionStatus = async (path: string) => {
@@ -606,9 +733,21 @@ const uploadLargeFile = async (file: File) => {
     type: form.type,
   })
   const uploadId = initRes.data.upload_id
+  currentUploadId.value = uploadId
+
+  let lastTime = Date.now()
+  let lastLoaded = 0
 
   // 2. 逐个上传分片
   for (let i = 0; i < totalChunks; i++) {
+    // 检查是否已取消
+    if (!uploading.value) {
+      // 取消时清理已上传的分片
+      await api.del(`/admin/upload/${uploadId}/cancel`).catch(() => {})
+      currentUploadId.value = null
+      throw new Error('cancelled')
+    }
+
     const start = i * chunkSize
     const end = Math.min(start + chunkSize, file.size)
     const chunk = file.slice(start, end)
@@ -624,8 +763,22 @@ const uploadLargeFile = async (file: File) => {
       headers: { 'Content-Type': undefined },
     })
 
+    // 计算上传速度
+    const now = Date.now()
+    const loaded = end
+    const timeDiff = (now - lastTime) / 1000
+    
+    if (timeDiff > 0.5) {
+      const loadedDiff = loaded - lastLoaded
+      uploadSpeed.value = Math.round(loadedDiff / timeDiff)
+      lastLoaded = loaded
+      lastTime = now
+    }
+
     uploadProgress.value = Math.round(((i + 1) / totalChunks) * 100)
   }
+
+  currentUploadId.value = null
 
   // 3. 完成上传（异步处理，立即返回）
   const completeRes = await api.post<any>('/admin/upload/complete', { upload_id: uploadId })
@@ -658,6 +811,27 @@ const removeFile = () => {
   form.file_name = ''
   form.file_size = 0
   converting.value = false
+  convertingPath.value = null
+}
+
+const confirmCancelUpload = () => {
+  showCancelConfirm.value = true
+}
+
+const cancelUpload = () => {
+  showCancelConfirm.value = false
+  
+  if (currentXhr.value) {
+    currentXhr.value.abort()
+    currentXhr.value = null
+  }
+  
+  uploading.value = false
+  uploadProgress.value = 0
+  uploadSpeed.value = 0
+  canCancel.value = false
+  currentUploadId.value = null
+}
   convertingPath.value = null
 }
 
