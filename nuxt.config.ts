@@ -43,4 +43,25 @@ export default defineNuxtConfig({
     primary: 'blue',
     gray: 'slate',
   },
+
+  // TinyMCE 配置
+  build: {
+    transpile: ['tinymce']
+  },
+
+  vite: {
+    optimizeDeps: {
+      include: ['tinymce']
+    }
+  },
+
+  // 静态资源
+  nitro: {
+    publicAssets: [
+      {
+        baseURL: 'tinymce',
+        dir: 'public/tinymce'
+      }
+    ]
+  }
 })

@@ -186,11 +186,20 @@
                   
                   <!-- 编辑模式 -->
                   <div v-show="!showPreview">
+                    <!-- 填空题使用 textarea -->
                     <UTextarea 
+                      v-if="questionForm.type === 'fill_blank'"
                       ref="contentTextarea"
                       v-model="questionForm.content" 
-                      :placeholder="questionForm.type === 'fill_blank' ? '请输入题目内容，用（）标记填空位置' : '请输入题目内容'" 
-                      :rows="questionForm.type === 'fill_blank' ? 6 : 3" 
+                      placeholder="请输入题目内容，用（）标记填空位置" 
+                      :rows="6" 
+                    />
+                    <!-- 其他题型使用富文本编辑器 -->
+                    <TinyEditor
+                      v-else
+                      v-model="questionForm.content"
+                      placeholder="请输入题目内容"
+                      :height="250"
                     />
                   </div>
                   
