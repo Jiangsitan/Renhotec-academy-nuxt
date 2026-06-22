@@ -725,7 +725,7 @@ const uploadLargeFile = async (file: File) => {
   // 3. 完成上传（异步处理，立即返回）
   const completeRes = await api.post<any>('/admin/upload/complete', { upload_id: uploadId })
 
-  // 立即设置文件信息，允许保存
+  // 立即设置文件信息
   uploadedFile.value = completeRes.data
   form.content_url = completeRes.data.path || completeRes.data.url
   form.content_type = completeRes.data.content_type || 'pdf'
@@ -734,7 +734,12 @@ const uploadLargeFile = async (file: File) => {
   form.file_size = completeRes.data.file_size
   uploading.value = false
 
-  toast.add({ title: '文件上传成功', color: 'green' })
+  // 检查是否需要转换
+  if (completeRes.data.converting) {
+    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+  } else {
+    toast.add({ title: '文件上传成功', color: 'green' })
+  }
 }
 
 const removeFile = () => {
