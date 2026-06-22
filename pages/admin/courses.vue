@@ -636,7 +636,7 @@ const uploadSmallFile = async (file: File) => {
         if (res.data.converting) {
           converting.value = true
           convertingPath.value = res.data.path
-          toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+          toast.add({ title: '文件上传成功，正在后台压缩...', color: 'blue' })
           pollConversionStatus(res.data.path)
         } else {
           toast.add({ title: '文件上传成功', color: 'green' })
@@ -784,16 +784,16 @@ const uploadLargeFile = async (file: File) => {
   form.file_size = completeRes.data.file_size
   uploading.value = false
 
-  // 分片上传的文件也需要异步转换（PPT 等）
+  // 分片上传的文件也需要异步压缩（PPT/PDF 等）
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
-  const convertibleExts = ['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx']
-  if (convertibleExts.includes(ext)) {
+  const compressibleExts = ['ppt', 'pptx', 'pdf']
+  if (compressibleExts.includes(ext)) {
     converting.value = true
     convertingPath.value = completeRes.data.path
-    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
+    toast.add({ title: '文件上传成功，正在后台压缩...', color: 'blue' })
     pollConversionStatus(completeRes.data.path)
   } else {
-    toast.add({ title: '文件上传成功，正在处理中...', color: 'green' })
+    toast.add({ title: '文件上传成功', color: 'green' })
   }
 }
 
@@ -889,7 +889,7 @@ const uploadAttachmentFiles = async (files: File[]) => {
   uploadingAttachment.value = false
 
   if (convertingCount > 0) {
-    toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功，${convertingCount} 个正在后台转换`, color: 'blue' })
+    toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功，${convertingCount} 个正在后台压缩`, color: 'blue' })
   } else {
     toast.add({ title: `${uploadedAttachments.value.length} 个文件上传成功`, color: 'green' })
   }
