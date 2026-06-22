@@ -1081,7 +1081,26 @@ const handleWordImportDrop = (e: DragEvent) => {
 }
 
 const handleWordImport = async () => {
-  if (!wordImportFile.value || !editingExam.value) return
+  if (!wordImportFile.value) return
+  
+  // 如果是新考试，先保存
+  if (!editingExam.value) {
+    if (!examForm.value.title) {
+      toast.add({ title: '请先填写考试名称', color: 'red' })
+      return
+    }
+    
+    // 创建考试
+    try {
+      const res = await api.post<any>('/admin/exams', examForm.value)
+      editingExam.value = res.data
+      toast.add({ title: '考试已创建，开始导入题目...', color: 'blue' })
+    } catch (e: any) {
+      toast.add({ title: e?.data?.message || '创建考试失败', color: 'red' })
+      return
+    }
+  }
+  
   wordImporting.value = true
   wordImportResult.value = null
 
