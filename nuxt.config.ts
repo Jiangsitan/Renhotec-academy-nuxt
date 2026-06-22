@@ -51,7 +51,7 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      include: ['tinymce']
+      include: ['tinymce', 'md-editor-v3']
     }
   },
 

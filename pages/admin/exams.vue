@@ -184,6 +184,14 @@
                              icon="i-heroicons-eye" label="预览" @click="showPreview = !showPreview" />
                   </div>
                   
+                  <!-- 编辑器切换（非填空题） -->
+                  <div v-if="questionForm.type !== 'fill_blank'" class="flex gap-2">
+                    <UButton size="xs" :color="editorMode === 'richtext' ? 'primary' : 'gray'" 
+                             icon="i-heroicons-document-text" label="富文本" @click="editorMode = 'richtext'" />
+                    <UButton size="xs" :color="editorMode === 'markdown' ? 'primary' : 'gray'" 
+                             icon="i-heroicons-code-bracket" label="Markdown" @click="editorMode = 'markdown'" />
+                  </div>
+                  
                   <!-- 编辑模式 -->
                   <div v-show="!showPreview">
                     <!-- 填空题使用 textarea -->
@@ -194,11 +202,18 @@
                       placeholder="请输入题目内容，用（）标记填空位置" 
                       :rows="6" 
                     />
-                    <!-- 其他题型使用富文本编辑器 -->
+                    <!-- 富文本编辑器 -->
                     <TinyEditor
-                      v-else
+                      v-else-if="editorMode === 'richtext'"
                       v-model="questionForm.content"
                       placeholder="请输入题目内容"
+                      :height="250"
+                    />
+                    <!-- Markdown 编辑器 -->
+                    <MarkdownEditor
+                      v-else
+                      v-model="questionForm.content"
+                      placeholder="请输入题目内容（支持 Markdown 格式）"
                       :height="250"
                     />
                   </div>
@@ -447,6 +462,9 @@ const showPreview = ref(false)
 const contentTextarea = ref<any>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
 const uploadingImage = ref(false)
+
+// 编辑器模式
+const editorMode = ref<'richtext' | 'markdown'>('richtext')
 
 const tabs = [
   { key: 'info', label: '基本信息' },
