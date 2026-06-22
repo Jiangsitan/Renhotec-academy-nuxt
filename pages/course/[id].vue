@@ -101,8 +101,16 @@
                 </div>
               </div>
 
+              <!-- 文件转换中提示 -->
+              <div v-if="isConverting" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-heroicons-arrow-path" class="w-5 h-5 text-blue-600 animate-spin" />
+                  <span class="text-blue-700">文件转换中，请稍候刷新页面...</span>
+                </div>
+              </div>
+
               <!-- PDF 预览（PDF.js 流式渲染） -->
-              <div v-if="isPdf && previewUrl && previewUrl !== ''" class="mb-4">
+              <div v-else-if="isPdf && previewUrl && previewUrl !== ''" class="mb-4">
                 <PdfViewer :url="previewUrl" />
               </div>
 
@@ -282,6 +290,7 @@ const incompleteCourses = ref<{ id: number; title: string }[]>([])
 const loading = ref(true)
 const txtContent = ref('')
 const documentReaderRef = ref<any>(null)
+const isConverting = ref(false)
 
 // 将相对路径转为完整 URL
 const getFullUrl = (path: string): string => {
@@ -507,6 +516,9 @@ const loadCourse = async () => {
         txtContent.value = '无法加载文件内容'
       }
     }
+
+    // 检查是否需要轮询转换状态
+    checkConversionStatus()
   } catch (e: any) {
     if (e?.statusCode === 404) {
       navigateTo('/')
@@ -515,6 +527,50 @@ const loadCourse = async () => {
     }
   }
   loading.value = false
+}
+
+// ========== 检查转换状态 ==========
+const checkConversionStatus = () => {
+  if (!course.value) return
+  
+  const ext = course.value.file_name?.split('.').pop()?.toLowerCase()
+  const convertibleExts = ['ppt', 'pptx', 'doc', 'docx']
+  
+  // 如果是可转换的文件类型，且 content_url 还是原始格式，说明正在转换
+  if (convertibleExts.includes(ext) && course.value.content_url?.endsWith(`.${ext}`)) {
+    isConverting.value = true
+    pollConversionStatus()
+  }
+}
+
+// ========== 轮询转换状态 ==========
+const pollConversionStatus = async () => {
+  const maxAttempts = 60 // 最多轮询 5 分钟（每 5 秒一次）
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    
+    try {
+      const res = await api.get<any>(`/courses/${courseId}`)
+      const updatedCourse = res.data.course
+      
+      // 检查是否转换完成（content_url 变为 .pdf 或 images 有值）
+      const ext = updatedCourse.content_url?.split('.').pop()?.toLowerCase()
+      if (ext === 'pdf' || (updatedCourse.images && updatedCourse.images.length > 0)) {
+        isConverting.value = false
+        // 更新课程数据
+        course.value = updatedCourse
+        progress.value = res.data.progress
+        canTakeExam.value = res.data.can_take_exam ?? false
+        toast.add({ title: '文件转换完成', color: 'green' })
+        return
+      }
+    } catch (e) {
+      console.error('查询转换状态失败:', e)
+    }
+  }
+  
+  isConverting.value = false
+  toast.add({ title: '文件转换超时，请稍后刷新页面', color: 'orange' })
 }
 
 // ========== 视频进度 ==========
