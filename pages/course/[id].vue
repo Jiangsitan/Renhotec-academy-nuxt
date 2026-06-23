@@ -109,8 +109,8 @@
                 </div>
               </div>
 
-              <!-- PDF 预览（PDF.js 流式渲染） -->
-              <div v-else-if="isPdf && previewUrl && previewUrl !== ''" class="mb-4">
+              <!-- PDF 预览（PDF.js 流式渲染，包括已转换为 PDF 的 PPT） -->
+              <div v-else-if="(isPdf || course.content_url?.endsWith('.pdf')) && previewUrl && previewUrl !== ''" class="mb-4">
                 <PdfViewer :url="previewUrl" />
               </div>
 
@@ -129,8 +129,8 @@
                 />
               </div>
 
-              <!-- DOCX/XLSX/PPT 在线预览（Microsoft Office Online） -->
-              <div v-else-if="isDocx || isXlsx || isPpt" class="mb-4">
+              <!-- DOCX/XLSX/PPT 在线预览（排除已转换为 PDF 的） -->
+              <div v-else-if="(isDocx || isXlsx || isPpt) && !course.content_url?.endsWith('.pdf')" class="mb-4">
                 <DocumentViewer
                   :url="course.content_url"
                   :file-name="course.file_name || ''"
