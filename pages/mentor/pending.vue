@@ -69,7 +69,7 @@
 
           <!-- 非填空题：普通显示 -->
           <template v-else>
-            <div class="text-sm text-gray-600 mb-2 prose prose-sm max-w-none" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
+            <div class="text-sm text-gray-600 mb-2 fill-blank-content" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
             <p class="text-sm text-gray-800 bg-white p-3 rounded border mb-3">
               学员答案：{{ answer.answer }}
             </p>
@@ -151,7 +151,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import { formatScore } from '~/utils/format'
 
 definePageMeta({ middleware: 'auth' })
@@ -259,59 +258,28 @@ const isFillBlank = (questionId: number) => {
   return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type === 'fill_blank'
 }
 
-// 渲染 Markdown 内容（动态拼接图片 URL）
+// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
-  const processed = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+  return renderHtml(content, base)
 }
 
-// 解析填空题内容
-const parseFillBlankContent = (content: string) => {
-  const parts: { type: 'text' | 'blank'; text?: string; blankIndex?: number }[] = []
-  const regex = /（\s*）/g
-  let lastIndex = 0
-  let blankIndex = 0
-  let match
-
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', text: content.slice(lastIndex, match.index) })
-    }
-    parts.push({ type: 'blank', blankIndex })
-    blankIndex++
-    lastIndex = match.index + match[0].length
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({ type: 'text', text: content.slice(lastIndex) })
-  }
-
-  return parts
-}
-
-// 渲染填空题文本部分的 Markdown（动态拼接图片 URL）
-const renderFillBlankText = (text: string) => {
-  if (!text) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
-  const processed = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+const renderHtml = (content: string, base: string) => {
+  if (!content) return ''
+  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+  html = html.replace(/\n/g, '<br>')
+  return html
 }
 
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const cleaned = content.replace(/（\s*）/g, '')
-  const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(cleaned, base)
 }
 
 // 获取填空数量

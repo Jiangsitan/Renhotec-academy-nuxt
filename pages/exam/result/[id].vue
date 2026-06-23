@@ -179,7 +179,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import ExamModal from '~/components/exam/ExamModal.vue'
 import { formatScore } from '~/utils/format'
 
@@ -244,25 +243,28 @@ const getCourseId = (questionId: number) => findQuestion(questionId)?.course_id
 const isShortAnswer = (questionId: number) => findQuestion(questionId)?.type === 'short_answer'
 const isFillBlank = (questionId: number) => findQuestion(questionId)?.type === 'fill_blank'
 
-// 渲染 Markdown 内容（动态拼接图片 URL）
+// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
-  const processed = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+  return renderHtml(content, base)
+}
+
+const renderHtml = (content: string, base: string) => {
+  if (!content) return ''
+  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+  html = html.replace(/\n/g, '<br>')
+  return html
 }
 
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const cleaned = content.replace(/（\s*）/g, '')
-  const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(cleaned, base)
 }
 
 // 获取填空数量

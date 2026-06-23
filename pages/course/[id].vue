@@ -82,7 +82,7 @@
             @completed="onDocumentComplete"
             @synced="onDocumentSynced"
           >
-            <div class="prose prose-sm max-w-none" v-html="course.content_url"></div>
+            <div class="text-sm text-gray-700" v-html="course.content_url"></div>
           </DocumentReader>
         </div>
 

@@ -44,24 +44,9 @@ export default defineNuxtConfig({
     gray: 'slate',
   },
 
-  // TinyMCE 配置
-  build: {
-    transpile: ['tinymce']
-  },
-
   vite: {
     optimizeDeps: {
-      include: ['tinymce', 'md-editor-v3']
+      include: ['survey-vue3-ui', 'survey-core']
     }
   },
-
-  // 静态资源
-  nitro: {
-    publicAssets: [
-      {
-        baseURL: 'tinymce',
-        dir: 'public/tinymce'
-      }
-    ]
-  }
 })

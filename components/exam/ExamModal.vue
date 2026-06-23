@@ -27,7 +27,7 @@
             </span>
           </h4>
 
-          <div v-if="question.type !== 'fill_blank'" class="text-sm text-gray-800 mb-4 prose prose-sm max-w-none fill-blank-content" v-html="renderContent(question.content)"></div>
+          <div v-if="question.type !== 'fill_blank'" class="text-sm text-gray-800 mb-4 fill-blank-content" v-html="renderContent(question.content)"></div>
 
           <!-- 单选/判断 -->
           <div v-if="question.type === 'single' || question.type === 'truefalse'" class="space-y-2">
@@ -111,7 +111,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import ExamFullscreen from './ExamFullscreen.vue'
 import { formatScore } from '~/utils/format'
 
@@ -160,12 +159,20 @@ const displayTime = computed(() => {
 
 const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? t)
 
-// 渲染 Markdown 内容（动态拼接图片 URL）
+// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderContent = (content: string) => {
   if (!content) return ''
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const processed = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(content, base)
+}
+
+const renderHtml = (content: string, base: string) => {
+  if (!content) return ''
+  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+  html = html.replace(/\n/g, '<br>')
+  return html
 }
 
 const toggleMultiple = (qid: number, key: string) => {
@@ -207,20 +214,12 @@ const updateFillBlank = (qid: number, index: number, value: string) => {
   answers.value = { ...answers.value, [qid]: arr }
 }
 
-// 渲染填空题文本部分的 Markdown
-const renderFillBlankText = (text: string) => {
-  if (!text) return ''
-  return marked(text)
-}
-
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  // 移除（）标记，保留其他内容
   const cleaned = content.replace(/（\s*）/g, '')
-  const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(cleaned, base)
 }
 
 // 获取填空数量

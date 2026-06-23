@@ -7,7 +7,7 @@
       </span>
     </h2>
 
-    <div v-if="question.type !== 'fill_blank'" class="text-gray-700 mb-4 prose prose-sm max-w-none fill-blank-content" v-html="renderedContent"></div>
+    <div v-if="question.type !== 'fill_blank'" class="text-gray-700 mb-4 fill-blank-content" v-html="renderedContent"></div>
 
     <!-- 单选题 -->
     <div v-if="question.type === 'single' || question.type === 'truefalse'" class="space-y-2">
@@ -82,7 +82,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import { formatScore } from '~/utils/format'
 
 const props = defineProps<{
@@ -106,12 +105,11 @@ const typeLabel = computed(() => {
   return map[props.question.type] || ''
 })
 
-// 渲染 Markdown 内容（动态拼接图片 URL）
+// 渲染题目内容（兼容旧的 Markdown 图片语法和新的 HTML 格式）
 const renderedContent = computed(() => {
   if (!props.question.content) return ''
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const processed = props.question.content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(props.question.content, base)
 })
 
 const toggleMultiple = (key: string) => {
@@ -125,46 +123,26 @@ const toggleMultiple = (key: string) => {
   emit('update', current)
 }
 
-// 解析填空题内容，分离文本和填空位置
-const parseFillBlankContent = (content: string) => {
-  const parts: { type: 'text' | 'blank'; text?: string; blankIndex?: number }[] = []
-  const regex = /（\s*）/g
-  let lastIndex = 0
-  let blankIndex = 0
-  let match
-
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', text: content.slice(lastIndex, match.index) })
-    }
-    parts.push({ type: 'blank', blankIndex })
-    blankIndex++
-    lastIndex = match.index + match[0].length
-  }
-
-  if (lastIndex < content.length) {
-    parts.push({ type: 'text', text: content.slice(lastIndex) })
-  }
-
-  return parts
-}
-
-// 渲染填空题文本部分的 Markdown（动态拼接图片 URL）
-const renderFillBlankText = (text: string) => {
-  if (!text) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const processed = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
+const renderHtml = (content: string, base: string) => {
+  if (!content) return ''
+  // 兼容旧的 Markdown 图片语法 ![alt](url) → <img src="url">
+  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+  // 兼容旧的 Markdown 图片语法（完整URL）
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+  // 处理相对图片路径
+  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+  // 换行符转 <br>
+  html = html.replace(/\n/g, '<br>')
+  return html
 }
 
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  // 移除（）标记，保留其他内容
   const cleaned = content.replace(/（\s*）/g, '')
-  const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(cleaned, base)
 }
 
 // 获取填空数量

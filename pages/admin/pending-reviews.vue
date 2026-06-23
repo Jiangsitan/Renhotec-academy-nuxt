@@ -174,7 +174,7 @@
 
           <!-- 非填空题：普通显示 -->
           <template v-else>
-            <div class="text-sm text-gray-600 mb-2 prose prose-sm max-w-none" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
+            <div class="text-sm text-gray-600 mb-2 fill-blank-content" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
             <div class="text-sm text-gray-800 bg-white p-3 rounded border mb-3">
               {{ answer.answer || '未作答' }}
             </div>
@@ -243,7 +243,6 @@
 </template>
 
 <script setup lang="ts">
-import { marked } from 'marked'
 import { formatScore } from '~/utils/format'
 
 definePageMeta({ middleware: 'admin' })
@@ -543,11 +542,17 @@ const isFillBlank = (questionId: number) => {
 
 const renderContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
-  const processed = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+  return renderHtml(content, base)
+}
+
+const renderHtml = (content: string, base: string) => {
+  if (!content) return ''
+  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+  html = html.replace(/\n/g, '<br>')
+  return html
 }
 
 const parseFillBlankContent = (content: string) => {
@@ -573,24 +578,12 @@ const parseFillBlankContent = (content: string) => {
   return parts
 }
 
-const renderFillBlankText = (text: string) => {
-  if (!text) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
-  const processed = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
-}
-
 // 渲染填空题内容（去除填空标记，只保留图片和文字）
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
-  const base = typeof window !== 'undefined' 
-    ? `${window.location.protocol}//${window.location.hostname}:8000` 
-    : ''
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const cleaned = content.replace(/（\s*）/g, '')
-  const processed = cleaned.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `![$1](${base}$2)`)
-  return marked(processed)
+  return renderHtml(cleaned, base)
 }
 
 // 获取填空数量
