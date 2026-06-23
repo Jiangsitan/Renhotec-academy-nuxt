@@ -169,28 +169,17 @@ const loadPdf = async () => {
 
     console.log('PdfViewer: Loading PDF with URL:', fullUrl)
 
-    // 1. 检查本地缓存
-    const cached = await getCachedPdf(fullUrl)
-    if (cached) {
-      console.log('PdfViewer: Using cached PDF')
-      const loadingTask = pdfjsLib.getDocument({ data: cached })
-      pdfDoc = await loadingTask.promise
-    } else {
-      // 2. 流式加载
-      console.log('PdfViewer: Fetching PDF from network')
-      const response = await fetch(fullUrl)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const arrayBuffer = await response.arrayBuffer()
-      
-      // 3. 缓存到本地
-      await cachePdf(fullUrl, arrayBuffer)
-      
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
-      pdfDoc = await loadingTask.promise
+    // 直接从网络加载（不使用缓存，避免缓存损坏的 PDF）
+    console.log('PdfViewer: Fetching PDF from network')
+    const response = await fetch(fullUrl)
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
+    
+    const arrayBuffer = await response.arrayBuffer()
+    
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
+    pdfDoc = await loadingTask.promise
 
     if (destroyed) {
       pdfDoc = null
