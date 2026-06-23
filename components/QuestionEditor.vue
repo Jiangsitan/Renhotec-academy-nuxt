@@ -81,11 +81,9 @@
       <UInput v-model.number="form.score" type="number" min="1" max="100" placeholder="分值" />
     </UFormGroup>
 
-    <!-- 预览 -->
-    <UFormGroup label="预览（学生端效果）">
-      <div class="border rounded-lg p-4 bg-gray-50">
-        <SurveyPreview :questions="[previewQuestion]" :read-only="true" />
-      </div>
+    <!-- 关联课程 -->
+    <UFormGroup v-if="courseOptions?.length" label="关联课程" description="学员答错时显示此课程链接，引导复习">
+      <USelect v-model="form.course_id" :options="courseOptions" placeholder="选择关联课程" />
     </UFormGroup>
   </div>
 </template>
@@ -93,10 +91,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   question?: any
-}>()
-
-const emit = defineEmits<{
-  save: [question: any]
+  courseOptions?: { label: string; value: string }[]
 }>()
 
 const questionTypes = [
@@ -120,6 +115,7 @@ const form = reactive({
       ],
   correct_answer: props.question?.correct_answer || '',
   score: props.question?.score || 10,
+  course_id: props.question?.course_id || '',
 })
 
 watch(() => form.type, (newType) => {
@@ -142,14 +138,6 @@ const extractedImages = computed(() => {
   }).filter(Boolean)
 })
 
-const previewQuestion = computed(() => ({
-  type: form.type,
-  content: form.content,
-  options: form.options,
-  correct_answer: form.correct_answer,
-  score: form.score,
-}))
-
 const insertImage = (url: string) => {
   form.content += `<img src="${url}">`
 }
@@ -169,6 +157,7 @@ const getFormData = () => {
     options: ['single', 'multiple', 'truefalse'].includes(form.type) ? form.options : null,
     correct_answer: form.correct_answer,
     score: form.score,
+    course_id: form.course_id || null,
   }
 }
 

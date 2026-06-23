@@ -132,6 +132,7 @@
                   </span>
                 </div>
                 <div class="flex gap-1">
+                  <UButton color="gray" variant="ghost" icon="i-heroicons-eye" size="xs" @click="previewQuestion(q)" />
                   <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" @click="openQuestionForm(q, idx)" />
                   <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDeleteQuestion(idx)" />
                 </div>
@@ -167,69 +168,23 @@
             <template #header>
               <h3 class="text-base font-semibold">{{ editingQuestionIndex !== null ? '编辑题目' : '添加题目' }}</h3>
             </template>
-            <UForm :state="questionForm" class="space-y-4">
-              <UFormGroup label="题型" required>
-                <USelect v-model="questionForm.type" :options="questionTypeOptions" />
-              </UFormGroup>
-              <UFormGroup label="题干" required>
-                <div class="space-y-2">
-                  <!-- 填空题专用工具栏 -->
-                  <div v-if="questionForm.type === 'fill_blank'" class="flex gap-2">
-                    <UButton size="xs" color="gray" icon="i-heroicons-photo" 
-                             label="插入图片" :loading="uploadingImage" @click="insertImage" />
-                    <UButton size="xs" color="gray" icon="i-heroicons-square-3-stack-3d" 
-                             label="插入填空" @click="insertBlank" />
-                    <UButton size="xs" :color="showPreview ? 'primary' : 'gray'" 
-                             icon="i-heroicons-eye" label="预览" @click="showPreview = !showPreview" />
-                  </div>
-                  
-                  <!-- 编辑模式 -->
-                  <div v-show="!showPreview">
-                    <UTextarea 
-                      ref="contentTextarea"
-                      v-model="questionForm.content" 
-                      :placeholder="questionForm.type === 'fill_blank' ? '请输入题目内容，用（）标记填空位置' : '请输入题目内容'" 
-                      :rows="6" 
-                    />
-                  </div>
-                  
-                  <!-- 预览模式（仅填空题） -->
-                  <div v-if="questionForm.type === 'fill_blank' && showPreview" 
-                       class="p-4 bg-gray-50 rounded-lg border min-h-[120px]">
-                    <div class="fill-blank-content" v-html="renderedContent"></div>
-                  </div>
-                </div>
-              </UFormGroup>
-              
-              <!-- 隐藏的图片上传 input -->
-              <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
-              <UFormGroup v-if="questionForm.type !== 'short_answer' && questionForm.type !== 'fill_blank'" label="选项" required description="每行一个选项，格式: A. 选项内容">
-                <UTextarea v-model="optionsText" placeholder="A. 选项一&#10;B. 选项二&#10;C. 选项三&#10;D. 选项四" :rows="4" />
-              </UFormGroup>
-              <UFormGroup v-if="questionForm.type !== 'short_answer' && questionForm.type !== 'fill_blank'" label="正确答案" required :description="questionForm.type === 'multiple' ? '多选用逗号分隔，如: A,B,D' : questionForm.type === 'truefalse' ? 'A 表示正确，B 表示错误' : ''">
-                <UInput v-model="questionForm.correct_answer" :placeholder="questionForm.type === 'multiple' ? 'A,B' : questionForm.type === 'truefalse' ? 'A' : 'A'" />
-              </UFormGroup>
-            <UFormGroup v-if="questionForm.type === 'fill_blank'" label="正确答案" required description="每个空的答案用逗号分隔，如：连接器（Connector）,转接头（adapter）,插头（plug）">
-              <UInput v-model="questionForm.correct_answer" placeholder="连接器（Connector）,转接头（adapter）,插头（plug）" />
-            </UFormGroup>
-              <UFormGroup v-if="questionForm.type === 'short_answer'" label="参考答案（可选）" description="仅供参考，实际由导师批改评分">
-                <UTextarea v-model="questionForm.correct_answer" placeholder="可选：提供参考答案供导师评分时参考" :rows="2" />
-              </UFormGroup>
-              <div class="grid grid-cols-2 gap-4">
-                <UFormGroup label="分值" required>
-                  <UInput v-model.number="questionForm.score" type="number" placeholder="25" />
-                </UFormGroup>
-                <UFormGroup label="关联课程" description="学员答错时显示此课程链接，引导复习">
-                  <USelect v-model="questionForm.course_id" :options="questionCourseOptions" placeholder="选择关联课程" />
-                </UFormGroup>
-              </div>
-            </UForm>
+            <QuestionEditor ref="questionEditorRef" :question="editingQuestion" :course-options="questionCourseOptions" />
             <template #footer>
               <div class="flex justify-end gap-3">
                 <UButton color="gray" label="取消" @click="showQuestionForm = false" />
                 <UButton :label="editingQuestionIndex !== null ? '保存' : '添加'" :loading="savingQuestion" @click="handleQuestionSubmit" />
               </div>
             </template>
+          </UCard>
+        </UModal>
+
+        <!-- 题目预览弹窗 -->
+        <UModal v-model="showPreviewModal">
+          <UCard>
+            <template #header>
+              <h3 class="text-base font-semibold">题目预览</h3>
+            </template>
+            <SurveyPreview v-if="previewingQuestion" :questions="[previewingQuestion]" :read-only="true" />
           </UCard>
         </UModal>
 
@@ -347,20 +302,12 @@ const selectedSeriesId = ref('')
 const selectedCourseId = ref('')
 const selectedCourses = ref<any[]>([])
 
-// 填空题相关状态
-const showPreview = ref(false)
-const contentTextarea = ref<any>(null)
-const imageInputRef = ref<HTMLInputElement | null>(null)
-const uploadingImage = ref(false)
-
 const tabs = [
   { key: 'info', label: '基本信息' },
   { key: 'questions', label: '题目设置' },
 ]
 
 const examForm = ref({ title: '', course_ids: [], time_limit: 60, passing_score: 60 })
-const questionForm = reactive({ type: 'single', content: '', correct_answer: '', score: 25, course_id: '' })
-const optionsText = ref('')
 const questions = ref<any[]>([])
 
 const columns = [
@@ -371,14 +318,6 @@ const columns = [
   { key: 'passing_score', label: '及格分' },
   { key: 'status', label: '状态' },
   { key: 'actions', label: '操作' },
-]
-
-const questionTypeOptions = [
-  { label: '单选题', value: 'single' },
-  { label: '多选题', value: 'multiple' },
-  { label: '判断题', value: 'truefalse' },
-  { label: '简答题', value: 'short_answer' },
-  { label: '填空题', value: 'fill_blank' },
 ]
 
 const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? t)
@@ -393,13 +332,6 @@ const isCorrectAnswer = (q: any, key: string) => {
   }
   return q.correct_answer === key
 }
-
-// 填空题相关方法
-const renderedContent = computed(() => {
-  if (!questionForm.content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  return renderHtml(questionForm.content, base)
-})
 
 const renderQuestionContent = (content: string) => {
   if (!content) return ''
@@ -423,72 +355,6 @@ const formatFillBlankAnswer = (answer: string) => {
     if (Array.isArray(arr)) return arr.join('、')
   } catch {}
   return answer
-}
-
-const insertBlank = () => {
-  const textarea = contentTextarea.value?.$el?.querySelector('textarea')
-  if (!textarea) {
-    questionForm.content += '（ ）'
-    return
-  }
-  
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const text = questionForm.content
-  
-  questionForm.content = text.slice(0, start) + '（ ）' + text.slice(end)
-  
-  nextTick(() => {
-    textarea.focus()
-    textarea.setSelectionRange(start + 3, start + 3)
-  })
-}
-
-const insertImage = () => {
-  imageInputRef.value?.click()
-}
-
-const handleImageUpload = async (e: Event) => {
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  if (file.size > 10 * 1024 * 1024) {
-    toast.add({ title: '图片大小不能超过 10MB', color: 'red' })
-    return
-  }
-
-  uploadingImage.value = true
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', 'document')
-
-    const res = await api.apiFetch<any>('/admin/upload/file', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Content-Type': undefined },
-    })
-
-    const imageUrl = res.data.url
-    const imageHtml = `<img src="${imageUrl}">`
-    
-    const textarea = contentTextarea.value?.$el?.querySelector('textarea')
-    if (textarea) {
-      const start = textarea.selectionStart
-      const text = questionForm.content
-      questionForm.content = text.slice(0, start) + imageHtml + text.slice(start)
-    } else {
-      questionForm.content += imageHtml
-    }
-
-    toast.add({ title: '图片上传成功', color: 'green' })
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '图片上传失败', color: 'red' })
-  } finally {
-    uploadingImage.value = false
-    input.value = ''
-  }
 }
 
 let searchTimeout: ReturnType<typeof setTimeout>
@@ -698,32 +564,36 @@ const loadAllCourses = async () => {
   }
 }
 
+const editingQuestion = ref<any>(null)
+const questionEditorRef = ref<any>(null)
+const showPreviewModal = ref(false)
+const previewingQuestion = ref<any>(null)
+
 const openQuestionForm = (q?: any, idx?: number) => {
   editingQuestionIndex.value = idx ?? null
-  if (q) {
-    Object.assign(questionForm, { type: q.type, content: q.content, correct_answer: q.correct_answer, score: q.score, course_id: q.course_id || '' })
-    optionsText.value = q.options ? q.options.map((o: any) => `${o.key}. ${o.value}`).join('\n') : ''
-  } else {
-    // 默认关联考试的课程
-    Object.assign(questionForm, { type: 'single', content: '', correct_answer: '', score: 25, course_id: '' })
-    optionsText.value = ''
-  }
+  editingQuestion.value = q ? { ...q } : null
   loadAllCourses()
   showQuestionForm.value = true
 }
 
+const previewQuestion = (q: any) => {
+  previewingQuestion.value = q
+  showPreviewModal.value = true
+}
+
 const handleQuestionSubmit = async () => {
-  if (!questionForm.content) {
+  const data = questionEditorRef.value?.getFormData()
+  if (!data?.content) {
     toast.add({ title: '请填写题干', color: 'red' })
     return
   }
-  if (questionForm.type !== 'short_answer' && !questionForm.correct_answer) {
+  if (data.type !== 'short_answer' && !data.correct_answer) {
     toast.add({ title: '请填写正确答案', color: 'red' })
     return
   }
 
   // 计算添加/更新题目后的总分
-  const newScore = Number(questionForm.score) || 0
+  const newScore = Number(data.score) || 0
   const oldScore = (editingQuestionIndex.value !== null && editingQuestionIndex.value >= 0)
     ? (Number(questions.value[editingQuestionIndex.value]?.score) || 0)
     : 0
@@ -735,19 +605,9 @@ const handleQuestionSubmit = async () => {
   }
 
   const q: any = {
-    ...JSON.parse(JSON.stringify(questionForm)),
+    ...JSON.parse(JSON.stringify(data)),
     _temp_id: Date.now() + Math.random(),
     _isNew: true,
-  }
-
-  // 解析选项
-  if (questionForm.type !== 'short_answer' && questionForm.type !== 'fill_blank' && optionsText.value) {
-    q.options = optionsText.value.split('\n').filter(l => l.trim()).map(line => {
-      const match = line.match(/^([A-Za-z])[.、．)\s]+(.+)/)
-      return match ? { key: match[1].toUpperCase(), value: match[2].trim() } : { key: '', value: line.trim() }
-    }).filter(o => o.key)
-  } else {
-    q.options = null
   }
 
   if (editingQuestionIndex.value !== null && editingQuestionIndex.value >= 0) {
