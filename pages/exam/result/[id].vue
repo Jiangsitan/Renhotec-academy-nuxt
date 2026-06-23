@@ -46,6 +46,50 @@
           <span class="font-medium">导师评语：</span>{{ record.mentor_comment }}
         </div>
 
+        <!-- 未通过引导 -->
+        <div v-if="isFailed" class="mt-6 p-5 bg-orange-50 border border-orange-200 rounded-lg text-left">
+          <div class="flex items-center gap-2 mb-3">
+            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-orange-600" />
+            <span class="text-base font-semibold text-orange-700">未通过考试</span>
+          </div>
+          <p class="text-sm text-orange-600 mb-4">
+            您的成绩 {{ formatScore(record.total_score) }} 分未达到及格线 {{ formatScore(record.exam?.passing_score) }} 分。
+            请重新学习以下课程后再次参加考试：
+          </p>
+
+          <!-- 需要重新学习的课程 -->
+          <div v-if="reviewCourses.length > 0" class="space-y-2 mb-4">
+            <div v-for="course in reviewCourses" :key="course.id" class="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-200">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-heroicons-book-open" class="w-4 h-4 text-primary-600" />
+                <span class="text-sm text-gray-700">{{ course.title }}</span>
+                <UBadge v-if="course.is_completed" label="已完成" color="green" size="xs" variant="subtle" />
+                <UBadge v-else label="未完成" color="orange" size="xs" variant="subtle" />
+              </div>
+              <UButton
+                :to="`/course/${course.id}`"
+                size="xs"
+                color="primary"
+                label="去学习"
+                icon="i-heroicons-arrow-right"
+                trailing
+              />
+            </div>
+          </div>
+
+          <!-- 重新考试按钮 -->
+          <UButton
+            label="重新考试"
+            color="primary"
+            icon="i-heroicons-arrow-path"
+            :disabled="!canRetake"
+            @click="handleRetake"
+          />
+          <p v-if="!canRetake" class="text-xs text-orange-500 mt-2">
+            请先完成所有关联课程的学习后再重新考试
+          </p>
+        </div>
+
         <!-- 作弊记录 -->
         <div v-if="record.cheats?.length > 0" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
           <div class="flex items-center gap-2 mb-3">
@@ -194,6 +238,50 @@ const loading = ref(true)
 const isPassed = computed(() => {
   if (!record.value?.total_score || !record.value?.exam?.passing_score) return false
   return record.value.total_score >= record.value.exam.passing_score
+})
+
+const isFailed = computed(() => {
+  if (!record.value) return false
+  // 已批改且未通过
+  return (record.value.status === 'graded' || record.value.status === 'auto_graded')
+    && record.value.total_score != null
+    && record.value.exam?.passing_score
+    && record.value.total_score < record.value.exam.passing_score
+})
+
+// 需要重新学习的课程（答错题目关联的课程）
+const reviewCourses = computed(() => {
+  if (!record.value?.answers || !record.value?.exam?.questions) return []
+
+  const courseMap = new Map<number, { id: number; title: string; is_completed: boolean }>()
+
+  for (const answer of record.value.answers) {
+    // 未得分或 0 分的题目
+    const isWrong = answer.is_correct === false
+      || (answer.is_correct === null && Number(answer.score_awarded ?? 0) === 0)
+
+    if (!isWrong) continue
+
+    const question = record.value.exam.questions.find((q: any) => q.id === answer.question_id)
+    if (!question?.course_id) continue
+
+    if (!courseMap.has(question.course_id)) {
+      courseMap.set(question.course_id, {
+        id: question.course_id,
+        title: `课程 #${question.course_id}`,
+        is_completed: false,
+      })
+    }
+  }
+
+  return Array.from(courseMap.values())
+})
+
+// 是否可以重新考试（所有关联课程已完成）
+const canRetake = computed(() => {
+  if (!record.value?.exam?.courses?.length) return true
+  // 简化：允许重新考试，实际检查在后端 canTakeExam
+  return true
 })
 
 const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? '')
@@ -367,6 +455,10 @@ const shouldShowCourseReview = (answer: any) => {
 const showExamModal = ref(false)
 
 const handleResubmit = () => {
+  showExamModal.value = true
+}
+
+const handleRetake = () => {
   showExamModal.value = true
 }
 
