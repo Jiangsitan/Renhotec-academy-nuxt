@@ -20,16 +20,29 @@ const emit = defineEmits<{
 }>()
 
 const survey = computed(() => {
-  const elements = props.questions.map((q, idx) => {
+  const elements: any[] = []
+
+  props.questions.forEach((q, idx) => {
+    const hasHtml = /<img[^>]+src="[^"]+"/.test(q.content || '')
+
+    // 如果题目包含 HTML（图片），先添加 HTML 展示元素
+    if (hasHtml) {
+      elements.push({
+        type: 'html',
+        name: `q_${q.id || idx}_html`,
+        html: q.content,
+      })
+    }
+
     const base: any = {
       name: `q_${q.id || idx}`,
-      title: q.content,
+      title: hasHtml ? '' : q.content,
       isRequired: false,
     }
 
     switch (q.type) {
       case 'single':
-        return {
+        elements.push({
           ...base,
           type: 'radiogroup',
           choices: (q.options || []).map((o: any) => ({
@@ -37,10 +50,11 @@ const survey = computed(() => {
             text: o.value,
           })),
           correctAnswer: q.correct_answer,
-        }
+        })
+        break
 
       case 'multiple':
-        return {
+        elements.push({
           ...base,
           type: 'checkbox',
           choices: (q.options || []).map((o: any) => ({
@@ -48,10 +62,11 @@ const survey = computed(() => {
             text: o.value,
           })),
           correctAnswer: q.correct_answer?.split(',').map((s: string) => s.trim()),
-        }
+        })
+        break
 
       case 'truefalse':
-        return {
+        elements.push({
           ...base,
           type: 'radiogroup',
           choices: [
@@ -59,11 +74,12 @@ const survey = computed(() => {
             { value: 'B', text: '错误' },
           ],
           correctAnswer: q.correct_answer,
-        }
+        })
+        break
 
       case 'fill_blank': {
         const blanks = (q.content || '').match(/（\s*）/g) || []
-        return {
+        elements.push({
           ...base,
           type: 'multipletext',
           items: blanks.map((_: string, i: number) => ({
@@ -71,18 +87,20 @@ const survey = computed(() => {
             title: `空${i + 1}`,
             isRequired: false,
           })),
-        }
+        })
+        break
       }
 
       case 'short_answer':
-        return {
+        elements.push({
           ...base,
           type: 'comment',
           rows: 4,
-        }
+        })
+        break
 
       default:
-        return { ...base, type: 'comment' }
+        elements.push({ ...base, type: 'comment' })
     }
   })
 
