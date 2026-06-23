@@ -11,7 +11,7 @@
       <UTable :rows="exams" :columns="columns" :loading="loading">
         <template #courses-data="{ row }">
           <div v-if="row.courses?.length" class="flex flex-wrap gap-1">
-            <UBadge v-for="c in row.courses" :key="c.id" :label="c.title" size="xs" variant="subtle" />
+            <UBadge v-for="c in row.courses" :key="c.id" :label="`#${c.id} ${c.title}`" size="xs" variant="subtle" />
           </div>
           <span v-else class="text-xs text-gray-400">未关联</span>
         </template>

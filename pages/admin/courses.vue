@@ -448,6 +448,7 @@ const form = reactive({
 })
 
 const columns = [
+  { key: 'id', label: 'ID', sortable: true },
   { key: 'title', label: '标题' },
   { key: 'series', label: '主题' },
   { key: 'type', label: '类型' },
