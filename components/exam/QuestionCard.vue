@@ -48,24 +48,24 @@
       </label>
     </div>
 
-    <!-- 填空题：独立行输入框 -->
-    <div v-else-if="question.type === 'fill_blank'" class="space-y-4">
-      <!-- 题目内容（图片和文字） -->
-      <div class="text-gray-700 fill-blank-content" v-html="renderFillBlankContent(question.content)"></div>
-      
-      <!-- 答案输入区域 -->
-      <div class="fill-blank-answers">
-        <div v-for="idx in getBlankCount(question.content)" :key="idx" class="fill-blank-item">
-          <span class="fill-blank-label">第 {{ idx }} 空：</span>
-          <input
-            type="text"
-            :value="(modelValue || [])[idx - 1] || ''"
-            @input="updateFillBlank(idx - 1, ($event.target as HTMLInputElement).value)"
-            placeholder="请输入答案"
-            class="fill-blank-input"
-          />
-        </div>
-      </div>
+    <!-- 填空题：内联/块级混合渲染 -->
+    <div v-else-if="question.type === 'fill_blank'" class="fill-blank-inline">
+      <template v-for="(part, idx) in parsedContent" :key="idx">
+        <!-- 图片：块级显示 -->
+        <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
+        <!-- 空位输入框 -->
+        <input
+          v-else-if="part.type === 'blank'"
+          type="text"
+          :value="(modelValue || [])[part.index] || ''"
+          @input="updateFillBlank(part.index, ($event.target as HTMLInputElement).value)"
+          placeholder="请输入答案"
+          class="fill-blank-inline-input"
+          :class="{ block: part.display === 'block' }"
+        />
+        <!-- 文字：内联显示 -->
+        <span v-else v-html="part.html"></span>
+      </template>
     </div>
 
     <!-- 简答题 -->
@@ -126,31 +126,76 @@ const toggleMultiple = (key: string) => {
 // 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderHtml = (content: string, base: string) => {
   if (!content) return ''
-  // 兼容旧的 Markdown 图片语法 ![alt](url) → <img src="url">
   let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-  // 兼容旧的 Markdown 图片语法（完整URL）
   html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-  // 处理相对图片路径
   html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-  // 换行符转 <br>
   html = html.replace(/\n/g, '<br>')
   return html
 }
 
-// 渲染填空题内容（去除填空标记，只保留图片和文字）
-const renderFillBlankContent = (content: string) => {
-  if (!content) return ''
+// 解析填空题内容为片段数组（图片/空位/文字）
+const parsedContent = computed(() => {
+  if (!props.question.content) return []
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const cleaned = content.replace(/（\s*）/g, '')
-  return renderHtml(cleaned, base)
-}
+  const content = props.question.content
+  const parts: any[] = []
+  const imgRegex = /<img[^>]+src="([^"]+)"/g
+  const blankRegex = /（\s*）/g
 
-// 获取填空数量
-const getBlankCount = (content: string) => {
-  if (!content) return 0
-  const matches = content.match(/（\s*）/g)
-  return matches ? matches.length : 0
-}
+  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
+
+  let match
+  while ((match = imgRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
+  }
+  while ((match = blankRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
+  }
+
+  allMatches.sort((a, b) => a.index - b.index)
+
+  let lastIndex = 0
+  let blankIndex = 0
+
+  for (const m of allMatches) {
+    if (m.index > lastIndex) {
+      const text = content.slice(lastIndex, m.index)
+      if (text) {
+        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+        html = html.replace(/\n/g, '<br>')
+        parts.push({ type: 'text', html })
+      }
+    }
+
+    if (m.type === 'image') {
+      let src = m.value!
+      if (src.startsWith('/')) src = `${base}${src}`
+      parts.push({ type: 'image', src })
+    } else if (m.type === 'blank') {
+      const prevPart = parts[parts.length - 1]
+      const display = prevPart?.type === 'image' ? 'block' : 'inline'
+      parts.push({ type: 'blank', index: blankIndex, display })
+      blankIndex++
+    }
+
+    lastIndex = m.index + m.length
+  }
+
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex)
+    if (text) {
+      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+      html = html.replace(/\n/g, '<br>')
+      parts.push({ type: 'text', html })
+    }
+  }
+
+  return parts
+})
 
 // 更新填空答案
 const updateFillBlank = (index: number, value: string) => {

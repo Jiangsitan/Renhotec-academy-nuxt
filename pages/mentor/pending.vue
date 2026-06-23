@@ -53,18 +53,15 @@
             <UBadge v-else label="需人工评分" color="orange" size="xs" />
           </div>
 
-          <!-- 填空题：渲染 Markdown + 图片 + 填空位置 -->
-          <div v-if="isFillBlank(answer.question_id)" class="mb-3">
-            <!-- 题目内容（图片和文字，去除填空标记） -->
-            <div class="text-sm text-gray-600 mb-2 fill-blank-content" v-html="renderFillBlankContent(getQuestionContent(answer.question_id))"></div>
-            
-            <!-- 每个填空答案单独一行 -->
-            <div class="fill-blank-answers">
-              <div v-for="idx in getBlankCount(getQuestionContent(answer.question_id))" :key="idx" class="fill-blank-item">
-                <span class="fill-blank-label">第 {{ idx }} 空：</span>
-                <span class="fill-blank-display">{{ (answer.answer || [])[idx - 1] || '未填写' }}</span>
-              </div>
-            </div>
+          <!-- 填空题：内联/块级混合渲染 -->
+          <div v-if="isFillBlank(answer.question_id)" class="mb-3 text-sm text-gray-600 fill-blank-inline">
+            <template v-for="(part, pIdx) in parseFillBlankInline(getQuestionContent(answer.question_id))" :key="pIdx">
+              <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
+              <span v-else-if="part.type === 'blank'" class="fill-blank-display" :class="{ block: part.display === 'block' }">
+                {{ (answer.answer || [])[part.index] || '未填写' }}
+              </span>
+              <span v-else v-html="part.html"></span>
+            </template>
           </div>
 
           <!-- 非填空题：普通显示 -->
@@ -287,6 +284,69 @@ const getBlankCount = (content: string) => {
   if (!content) return 0
   const matches = content.match(/（\s*）/g)
   return matches ? matches.length : 0
+}
+
+// 解析填空题内容为内联片段（图片/空位/文字）
+const parseFillBlankInline = (content: string) => {
+  if (!content) return []
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+  const parts: any[] = []
+  const imgRegex = /<img[^>]+src="([^"]+)"/g
+  const blankRegex = /（\s*）/g
+
+  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
+
+  let match
+  while ((match = imgRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
+  }
+  while ((match = blankRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
+  }
+
+  allMatches.sort((a, b) => a.index - b.index)
+
+  let lastIndex = 0
+  let blankIndex = 0
+
+  for (const m of allMatches) {
+    if (m.index > lastIndex) {
+      const text = content.slice(lastIndex, m.index)
+      if (text) {
+        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+        html = html.replace(/\n/g, '<br>')
+        parts.push({ type: 'text', html })
+      }
+    }
+
+    if (m.type === 'image') {
+      let src = m.value!
+      if (src.startsWith('/')) src = `${base}${src}`
+      parts.push({ type: 'image', src })
+    } else if (m.type === 'blank') {
+      const prevPart = parts[parts.length - 1]
+      const display = prevPart?.type === 'image' ? 'block' : 'inline'
+      parts.push({ type: 'blank', index: blankIndex, display })
+      blankIndex++
+    }
+
+    lastIndex = m.index + m.length
+  }
+
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex)
+    if (text) {
+      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+      html = html.replace(/\n/g, '<br>')
+      parts.push({ type: 'text', html })
+    }
+  }
+
+  return parts
 }
 
 // 一键审核通过

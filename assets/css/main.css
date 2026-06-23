@@ -21,6 +21,66 @@ body {
   margin-bottom: 8px;
 }
 
+/* 填空题内联渲染 */
+.fill-blank-inline {
+  line-height: 2.2;
+}
+
+.fill-blank-inline img {
+  max-width: 300px;
+  max-height: 200px;
+  height: auto;
+  border-radius: 8px;
+  object-fit: contain;
+  display: block;
+  margin: 8px 0;
+}
+
+.fill-blank-inline-input {
+  min-width: 120px;
+  width: auto;
+  max-width: 300px;
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  display: inline-block;
+  vertical-align: baseline;
+  margin: 0 4px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fill-blank-inline-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.fill-blank-inline-input.block {
+  display: block;
+  margin: 4px 0 8px 0;
+}
+
+/* 填空题预览标记 */
+.fill-blank-preview {
+  display: inline-block;
+  min-width: 80px;
+  padding: 4px 12px;
+  background-color: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1d4ed8;
+  text-align: center;
+  margin: 0 4px;
+}
+
+.fill-blank-preview.block {
+  display: block;
+  margin: 4px 0 8px 0;
+  width: fit-content;
+}
+
 /* 填空题答案区域样式 */
 .fill-blank-answers {
   display: flex;

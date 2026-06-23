@@ -15,20 +15,39 @@
 
     <!-- 题目内容 -->
     <UFormGroup label="题目内容" required>
-      <UTextarea v-model="form.content" :rows="3" placeholder="输入题目内容，用（）标记填空题空位" />
+      <UTextarea v-model="form.content" :rows="form.type === 'fill_blank' ? 6 : 3" :placeholder="form.type === 'fill_blank' ? '输入题目内容，用（）标记空位。示例：产品由（外壳）、（胶芯）和（中心导体）组成' : '输入题目内容'" />
       <div class="mt-2">
         <ImageUploader label="插入图片" @uploaded="insertImage" @error="showError" />
       </div>
-      <!-- 图片预览 -->
-      <div v-if="extractedImages.length" class="flex gap-2 mt-2 flex-wrap">
-        <img
-          v-for="(img, i) in extractedImages"
-          :key="i"
-          :src="img"
-          class="w-20 h-20 object-cover rounded border"
-        />
-      </div>
     </UFormGroup>
+
+    <!-- 填空题：空位检测 + 每空单独输入框 -->
+    <template v-if="form.type === 'fill_blank'">
+      <div v-if="blankCount > 0" class="space-y-2">
+        <p class="text-sm text-gray-500">检测到 {{ blankCount }} 个空位，请为每个空位填写答案：</p>
+        <div v-for="idx in blankCount" :key="idx" class="flex items-center gap-2">
+          <span class="text-sm font-medium text-gray-600 min-w-[50px]">第 {{ idx }} 空：</span>
+          <UInput v-model="blankAnswers[idx - 1]" :placeholder="`第 ${idx} 空答案`" class="flex-1" />
+        </div>
+      </div>
+      <div v-else class="text-sm text-gray-400">
+        请在题目内容中用（）标记空位
+      </div>
+
+      <!-- 实时预览 -->
+      <div v-if="form.content" class="mt-4">
+        <p class="text-xs text-gray-400 mb-2">学生端预览：</p>
+        <div class="p-4 bg-gray-50 rounded-lg border fill-blank-inline">
+          <template v-for="(part, idx) in parsedPreview" :key="idx">
+            <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
+            <span v-else-if="part.type === 'blank'" class="fill-blank-preview" :class="{ block: part.display === 'block' }">
+              第{{ part.index + 1 }}空
+            </span>
+            <span v-else v-html="part.html"></span>
+          </template>
+        </div>
+      </div>
+    </template>
 
     <!-- 选项（单选/多选/判断） -->
     <UFormGroup v-if="['single', 'multiple', 'truefalse'].includes(form.type)" label="选项" required>
@@ -68,11 +87,10 @@
       </div>
     </UFormGroup>
 
-    <!-- 正确答案 -->
-    <UFormGroup label="正确答案" required>
+    <!-- 正确答案（非填空题） -->
+    <UFormGroup v-if="form.type !== 'fill_blank'" label="正确答案" required>
       <UInput v-if="form.type === 'single' || form.type === 'truefalse'" v-model="form.correct_answer" placeholder="如 A" />
       <UInput v-else-if="form.type === 'multiple'" v-model="form.correct_answer" placeholder="如 A,B,C" />
-      <UInput v-else-if="form.type === 'fill_blank'" v-model="form.correct_answer" placeholder="如 外壳,胶芯,中心导体" />
       <UTextarea v-else v-model="form.correct_answer" :rows="2" placeholder="参考答案（可选）" />
     </UFormGroup>
 
@@ -118,6 +136,19 @@ const form = reactive({
   course_id: props.question?.course_id || '',
 })
 
+// 填空题：每空单独的答案
+const blankAnswers = ref<string[]>([])
+
+// 初始化填空答案
+if (props.question?.type === 'fill_blank' && props.question?.correct_answer) {
+  try {
+    const arr = JSON.parse(props.question.correct_answer)
+    blankAnswers.value = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
+  } catch {
+    blankAnswers.value = props.question.correct_answer.split(',').map((s: string) => s.trim())
+  }
+}
+
 watch(() => form.type, (newType) => {
   if (newType === 'truefalse') {
     form.options = [
@@ -128,6 +159,78 @@ watch(() => form.type, (newType) => {
       form.correct_answer = ''
     }
   }
+})
+
+// 空位数量
+const blankCount = computed(() => {
+  if (!form.content) return 0
+  const matches = form.content.match(/（\s*）/g)
+  return matches ? matches.length : 0
+})
+
+// 同步空位数量和答案数组
+watch(blankCount, (newCount) => {
+  while (blankAnswers.value.length < newCount) {
+    blankAnswers.value.push('')
+  }
+  while (blankAnswers.value.length > newCount) {
+    blankAnswers.value.pop()
+  }
+})
+
+// 正确答案（从每空的答案合并）
+watch(blankAnswers, () => {
+  if (form.type === 'fill_blank') {
+    form.correct_answer = blankAnswers.value.join(',')
+  }
+}, { deep: true })
+
+// 解析内容为预览片段
+const parsedPreview = computed(() => {
+  if (!form.content) return []
+  const parts: any[] = []
+  const regex = /<img[^>]+src="([^"]+)"/g
+  const blankRegex = /（\s*）/g
+  let lastIndex = 0
+  let blankIndex = 0
+
+  // 先按顺序解析图片和空位
+  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
+
+  let match
+  while ((match = regex.exec(form.content)) !== null) {
+    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
+  }
+  while ((match = blankRegex.exec(form.content)) !== null) {
+    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
+  }
+
+  allMatches.sort((a, b) => a.index - b.index)
+
+  for (const m of allMatches) {
+    if (m.index > lastIndex) {
+      const text = form.content.slice(lastIndex, m.index)
+      if (text) parts.push({ type: 'text', html: text.replace(/\n/g, '<br>') })
+    }
+
+    if (m.type === 'image') {
+      parts.push({ type: 'image', src: m.value })
+    } else if (m.type === 'blank') {
+      const prevPart = parts[parts.length - 1]
+      const display = prevPart?.type === 'image' ? 'block' : 'inline'
+      parts.push({ type: 'blank', index: blankIndex, display })
+      blankIndex++
+    }
+
+    lastIndex = m.index + m.length
+  }
+
+  if (lastIndex < form.content.length) {
+    const text = form.content.slice(lastIndex)
+    if (text) parts.push({ type: 'text', html: text.replace(/\n/g, '<br>') })
+  }
+
+  return parts
 })
 
 const extractedImages = computed(() => {
@@ -155,7 +258,7 @@ const getFormData = () => {
     type: form.type,
     content: form.content,
     options: ['single', 'multiple', 'truefalse'].includes(form.type) ? form.options : null,
-    correct_answer: form.correct_answer,
+    correct_answer: form.type === 'fill_blank' ? blankAnswers.value.join(',') : form.correct_answer,
     score: form.score,
     course_id: form.course_id || null,
   }
