@@ -230,6 +230,9 @@
                 <UButton :label="editingQuestionIndex !== null ? '保存' : '添加'" :loading="savingQuestion" @click="handleQuestionSubmit" />
               </div>
             </template>
+          </UCard>
+        </UModal>
+
       </UCard>
     </UModal>
 
