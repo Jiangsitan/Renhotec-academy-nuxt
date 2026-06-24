@@ -677,8 +677,21 @@ const handleQuestionSubmit = async () => {
   showQuestionForm.value = false
 }
 
-const handleDeleteQuestion = (idx: number) => {
-  questions.value.splice(idx, 1)
+const handleDeleteQuestion = async (idx: number) => {
+  const question = questions.value[idx]
+  if (!question?.id) {
+    // 新增的题目（未保存），直接从数组删除
+    questions.value.splice(idx, 1)
+    return
+  }
+  
+  try {
+    await api.delete(`/admin/exams/${editingExam.value.id}/questions/${question.id}`)
+    questions.value.splice(idx, 1)
+    toast.add({ title: '题目已删除', color: 'green' })
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '删除失败', color: 'red' })
+  }
 }
 
 // ==================== 批量导入 ====================
