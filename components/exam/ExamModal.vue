@@ -186,7 +186,7 @@ const parseFillBlankContent = (content: string) => {
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const parts: any[] = []
   const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）/g
+  const blankRegex = /（\s*）|\(\s*\)/g
 
   const allMatches: { type: string; index: number; length: number; value?: string }[] = []
 

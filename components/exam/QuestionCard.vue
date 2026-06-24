@@ -140,7 +140,7 @@ const parsedContent = computed(() => {
   const content = props.question.content
   const parts: any[] = []
   const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）/g
+  const blankRegex = /（\s*）|\(\s*\)/g
 
   const allMatches: { type: string; index: number; length: number; value?: string }[] = []
 
