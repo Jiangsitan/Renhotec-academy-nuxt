@@ -679,8 +679,16 @@ const handleQuestionSubmit = async () => {
 
 const handleDeleteQuestion = async (idx: number) => {
   const question = questions.value[idx]
+  
+  // 新增的题目（未保存），直接从数组删除
   if (!question?.id) {
-    // 新增的题目（未保存），直接从数组删除
+    questions.value.splice(idx, 1)
+    return
+  }
+  
+  // 编辑已有考试的题目，需要调用 API 删除
+  if (!editingExam.value?.id) {
+    // 没有考试ID，直接从数组删除
     questions.value.splice(idx, 1)
     return
   }
