@@ -145,10 +145,10 @@
                   <span v-if="isCorrectAnswer(q, opt.key)" class="text-green-600">✓</span>
                 </div>
               </div>
-              <div v-if="q.type === 'short_answer' && q.correct_answer" class="text-xs text-gray-500 mt-1">
+              <div v-if="q.type === 4 && q.correct_answer" class="text-xs text-gray-500 mt-1">
                 参考答案：{{ q.correct_answer }}
               </div>
-              <div v-if="q.type === 'fill_blank' && q.correct_answer" class="text-xs text-gray-500 mt-1">
+              <div v-if="q.type === 5 && q.correct_answer" class="text-xs text-gray-500 mt-1">
                 正确答案：{{ formatFillBlankAnswer(q.correct_answer) }}
               </div>
             </div>
@@ -320,14 +320,14 @@ const columns = [
   { key: 'actions', label: '操作' },
 ]
 
-const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? t)
+const typeLabel = (t: number) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[t] ?? t)
 const statusLabel = (s: string) => ({ draft: '草稿', active: '已发布' }[s] ?? s)
 const statusColor = (s: string) => ({ draft: 'gray', active: 'green' }[s] ?? 'gray')
 
 const totalScore = computed(() => questions.value.reduce((sum, q) => sum + (Number(q.score) || 0), 0))
 
 const isCorrectAnswer = (q: any, key: string) => {
-  if (q.type === 'multiple') {
+  if (q.type === 2) { // 多选题
     return q.correct_answer?.split(',').map((s: string) => s.trim()).includes(key)
   }
   return q.correct_answer === key
@@ -587,7 +587,7 @@ const handleQuestionSubmit = async () => {
     toast.add({ title: '请填写题干', color: 'red' })
     return
   }
-  if (data.type !== 'short_answer' && !data.correct_answer) {
+  if (data.type !== 4 && !data.correct_answer) { // 简答题不需要正确答案
     toast.add({ title: '请填写正确答案', color: 'red' })
     return
   }

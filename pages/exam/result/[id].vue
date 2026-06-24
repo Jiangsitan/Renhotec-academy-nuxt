@@ -281,7 +281,7 @@ const canRetake = computed(() => {
   return true
 })
 
-const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? '')
+const typeLabel = (t: number) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[t] ?? '')
 
 // 作弊类型标签
 const getCheatTypeLabel = (action: string) => {
@@ -325,8 +325,8 @@ const getQuestionScore = (questionId: number) => findQuestion(questionId)?.score
 const getQuestionOptions = (questionId: number) => findQuestion(questionId)?.options ?? null
 const getCorrectAnswer = (questionId: number) => findQuestion(questionId)?.correct_answer ?? ''
 const getCourseId = (questionId: number) => findQuestion(questionId)?.course_id
-const isShortAnswer = (questionId: number) => findQuestion(questionId)?.type === 'short_answer'
-const isFillBlank = (questionId: number) => findQuestion(questionId)?.type === 'fill_blank'
+const isShortAnswer = (questionId: number) => findQuestion(questionId)?.type === 4
+const isFillBlank = (questionId: number) => findQuestion(questionId)?.type === 5
 
 // 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderContent = (content: string) => {
@@ -452,7 +452,7 @@ const formatCorrectAnswer = (questionId: number) => {
   if (!question?.correct_answer) return ''
   
   // 填空题：解析 JSON 数组并用顿号连接
-  if (question.type === 'fill_blank') {
+  if (question.type === 5) {
     try {
       const arr = JSON.parse(question.correct_answer)
       if (Array.isArray(arr)) return arr.join('、')
@@ -471,7 +471,7 @@ const isCorrectOption = (questionId: number, key: string) => {
   const correct = getCorrectAnswer(questionId)
   if (!correct) return false
   const q = findQuestion(questionId)
-  if (q?.type === 'multiple') {
+  if (q?.type === 2) {
     return correct.split(',').map((s: string) => s.trim()).includes(key)
   }
   return correct === key

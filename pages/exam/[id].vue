@@ -102,7 +102,7 @@ const loadExam = async () => {
 
     // 初始化答案对象
     questions.value.forEach(q => {
-      answers.value[q.id] = q.type === 'multiple' ? [] : ''
+      answers.value[q.id] = q.type === 2 ? [] : '' // 多选题初始化数组，其他初始化空字符串
     })
 
     // 启动防作弊监控

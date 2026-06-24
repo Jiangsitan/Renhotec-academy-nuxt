@@ -27,10 +27,10 @@
             </span>
           </h4>
 
-          <div v-if="question.type !== 'fill_blank'" class="text-sm text-gray-800 mb-4 fill-blank-content" v-html="renderContent(question.content)"></div>
+          <div v-if="question.type !== 5" class="text-sm text-gray-800 mb-4 fill-blank-content" v-html="renderContent(question.content)"></div>
 
           <!-- 单选/判断 -->
-          <div v-if="question.type === 'single' || question.type === 'truefalse'" class="space-y-2">
+          <div v-if="question.type === 1 || question.type === 3" class="space-y-2">
             <label
               v-for="opt in question.options"
               :key="opt.key"
@@ -50,7 +50,7 @@
           </div>
 
           <!-- 多选 -->
-          <div v-else-if="question.type === 'multiple'" class="space-y-2">
+          <div v-else-if="question.type === 2" class="space-y-2">
             <label
               v-for="opt in question.options"
               :key="opt.key"
@@ -69,7 +69,7 @@
           </div>
 
           <!-- 简答 -->
-          <div v-else-if="question.type === 'short_answer'">
+          <div v-else-if="question.type === 4">
             <textarea
               v-model="answers[question.id]"
               placeholder="请输入你的答案..."
@@ -79,7 +79,7 @@
           </div>
 
           <!-- 填空题：内联/块级混合渲染 -->
-          <div v-else-if="question.type === 'fill_blank'" class="fill-blank-inline">
+          <div v-else-if="question.type === 5" class="fill-blank-inline">
             <template v-for="(part, idx) in parseFillBlankContent(question.content)" :key="idx">
               <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
               <input
@@ -154,7 +154,7 @@ const displayTime = computed(() => {
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 })
 
-const typeLabel = (t: string) => ({ single: '单选', multiple: '多选', truefalse: '判断', short_answer: '简答', fill_blank: '填空' }[t] ?? t)
+const typeLabel = (t: number) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[t] ?? t)
 
 // 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
 const renderContent = (content: string) => {
@@ -286,19 +286,19 @@ const loadExam = async () => {
       questions.value.forEach(q => {
         const prevAnswer = previousAnswers.find((a: any) => a.question_id === q.id)
         if (prevAnswer) {
-          if (q.type === 'fill_blank') {
+          if (q.type === 5) { // 填空题
             answers.value[q.id] = prevAnswer.answer || []
-          } else if (q.type === 'multiple') {
+          } else if (q.type === 2) { // 多选题
             answers.value[q.id] = prevAnswer.answer || []
           } else {
             answers.value[q.id] = prevAnswer.answer || ''
           }
         } else {
-          answers.value[q.id] = q.type === 'multiple' || q.type === 'fill_blank' ? [] : ''
+          answers.value[q.id] = q.type === 2 || q.type === 5 ? [] : ''
         }
         
         // 预计算填空内容
-        if (q.type === 'fill_blank') {
+        if (q.type === 5) {
           parsedBlanks.value[q.id] = parseFillBlankContent(q.content)
         }
       })
@@ -320,12 +320,12 @@ const loadExam = async () => {
 
     // 初始化答案和预计算填空内容
     questions.value.forEach(q => {
-      if (q.type === 'fill_blank') {
+      if (q.type === 5) { // 填空题
         const blankCount = (q.content.match(/（\s*）/g) || []).length
         answers.value[q.id] = new Array(blankCount).fill('')
         parsedBlanks.value[q.id] = parseFillBlankContent(q.content)
       } else {
-        answers.value[q.id] = q.type === 'multiple' ? [] : ''
+        answers.value[q.id] = q.type === 2 ? [] : '' // 多选题初始化数组，其他初始化空字符串
       }
     })
 

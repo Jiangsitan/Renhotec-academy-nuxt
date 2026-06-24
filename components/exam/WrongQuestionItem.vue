@@ -41,12 +41,12 @@ const props = defineProps<{
 }>()
 
 const typeLabel = computed(() => {
-  const map: Record<string, string> = {
-    single: '单选题',
-    multiple: '多选题',
-    truefalse: '判断题',
-    short_answer: '简答题',
-    fill_blank: '填空题',
+  const map: Record<number, string> = {
+    1: '单选题',
+    2: '多选题',
+    3: '判断题',
+    4: '简答题',
+    5: '填空题',
   }
   return map[props.question.type] || ''
 })

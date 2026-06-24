@@ -7,10 +7,10 @@
       </span>
     </h2>
 
-    <div v-if="question.type !== 'fill_blank'" class="text-gray-700 mb-4 fill-blank-content" v-html="renderedContent"></div>
+    <div v-if="question.type !== 5" class="text-gray-700 mb-4 fill-blank-content" v-html="renderedContent"></div>
 
     <!-- 单选题 -->
-    <div v-if="question.type === 'single' || question.type === 'truefalse'" class="space-y-2">
+    <div v-if="question.type === 1 || question.type === 3" class="space-y-2">
       <label
         v-for="option in question.options"
         :key="option.key"
@@ -30,7 +30,7 @@
     </div>
 
     <!-- 多选题 -->
-    <div v-else-if="question.type === 'multiple'" class="space-y-2">
+    <div v-else-if="question.type === 2" class="space-y-2">
       <label
         v-for="option in question.options"
         :key="option.key"
@@ -49,7 +49,7 @@
     </div>
 
     <!-- 填空题：内联/块级混合渲染 -->
-    <div v-else-if="question.type === 'fill_blank'" class="fill-blank-inline">
+    <div v-else-if="question.type === 5" class="fill-blank-inline">
       <template v-for="(part, idx) in parsedContent" :key="idx">
         <!-- 图片：块级显示 -->
         <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
@@ -69,7 +69,7 @@
     </div>
 
     <!-- 简答题 -->
-    <div v-else-if="question.type === 'short_answer'">
+    <div v-else-if="question.type === 4">
       <textarea
         :value="modelValue"
         @input="$emit('update', ($event.target as HTMLTextAreaElement).value)"
@@ -95,12 +95,12 @@ const emit = defineEmits<{
 }>()
 
 const typeLabel = computed(() => {
-  const map: Record<string, string> = {
-    single: '单选题',
-    multiple: '多选题',
-    truefalse: '判断题',
-    short_answer: '简答题',
-    fill_blank: '填空题',
+  const map: Record<number, string> = {
+    1: '单选题',
+    2: '多选题',
+    3: '判断题',
+    4: '简答题',
+    5: '填空题',
   }
   return map[props.question.type] || ''
 })

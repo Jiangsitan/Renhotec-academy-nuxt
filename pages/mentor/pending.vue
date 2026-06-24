@@ -227,7 +227,7 @@ const getCorrectAnswer = (questionId: number) => {
   if (!question?.correct_answer) return ''
   
   // 填空题：解析 JSON 数组并用顿号连接
-  if (question.type === 'fill_blank') {
+  if (question.type === 5) {
     try {
       const arr = JSON.parse(question.correct_answer)
       if (Array.isArray(arr)) return arr.join('、')
@@ -240,19 +240,19 @@ const getCorrectAnswer = (questionId: number) => {
 // 获取题目类型标签
 const getQuestionTypeLabel = (questionId: number) => {
   const type = reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type
-  const map: Record<string, string> = {
-    single: '单选题',
-    multiple: '多选题',
-    truefalse: '判断题',
-    short_answer: '简答题',
-    fill_blank: '填空题',
+  const map: Record<number, string> = {
+    1: '单选题',
+    2: '多选题',
+    3: '判断题',
+    4: '简答题',
+    5: '填空题',
   }
   return map[type] || '主观题'
 }
 
 // 判断是否为填空题
 const isFillBlank = (questionId: number) => {
-  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type === 'fill_blank'
+  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type === 5
 }
 
 // 渲染 HTML 内容（兼容旧的 Markdown 图片语法）

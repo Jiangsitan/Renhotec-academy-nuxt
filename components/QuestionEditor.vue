@@ -15,14 +15,14 @@
 
     <!-- 题目内容 -->
     <UFormGroup label="题目内容" required>
-      <UTextarea v-model="form.content" :rows="form.type === 'fill_blank' ? 6 : 3" :placeholder="form.type === 'fill_blank' ? '输入题目内容，用（）标记空位。示例：产品由（外壳）、（胶芯）和（中心导体）组成' : '输入题目内容'" />
+      <UTextarea v-model="form.content" :rows="form.type === 5 ? 6 : 3" :placeholder="form.type === 5 ? '输入题目内容，用（）标记空位。示例：产品由（外壳）、（胶芯）和（中心导体）组成' : '输入题目内容'" />
       <div class="mt-2">
         <ImageUploader label="插入图片" @uploaded="insertImage" @error="showError" />
       </div>
     </UFormGroup>
 
     <!-- 填空题：空位检测 + 每空单独输入框 -->
-    <template v-if="form.type === 'fill_blank'">
+    <template v-if="form.type === 5">
       <div v-if="blankCount > 0" class="space-y-2">
         <p class="text-sm text-gray-500">检测到 {{ blankCount }} 个空位，请为每个空位填写答案：</p>
         <div v-for="idx in blankCount" :key="idx" class="flex items-center gap-2">
@@ -50,8 +50,8 @@
     </template>
 
     <!-- 选项（单选/多选/判断） -->
-    <UFormGroup v-if="['single', 'multiple', 'truefalse'].includes(form.type)" label="选项" required>
-      <div v-if="form.type === 'truefalse'" class="space-y-2">
+    <UFormGroup v-if="[1, 2, 3].includes(form.type)" label="选项" required>
+      <div v-if="form.type === 3" class="space-y-2">
         <div class="flex items-center gap-2">
           <span class="w-6 text-sm font-medium">A</span>
           <UInput value="正确" disabled class="flex-1" />
@@ -88,9 +88,9 @@
     </UFormGroup>
 
     <!-- 正确答案（非填空题） -->
-    <UFormGroup v-if="form.type !== 'fill_blank'" label="正确答案" required>
-      <UInput v-if="form.type === 'single' || form.type === 'truefalse'" v-model="form.correct_answer" placeholder="如 A" />
-      <UInput v-else-if="form.type === 'multiple'" v-model="form.correct_answer" placeholder="如 A,B,C" />
+    <UFormGroup v-if="form.type !== 5" label="正确答案" required>
+      <UInput v-if="form.type === 1 || form.type === 3" v-model="form.correct_answer" placeholder="如 A" />
+      <UInput v-else-if="form.type === 2" v-model="form.correct_answer" placeholder="如 A,B,C" />
       <UTextarea v-else v-model="form.correct_answer" :rows="2" placeholder="参考答案（可选）" />
     </UFormGroup>
 
@@ -113,15 +113,15 @@ const props = defineProps<{
 }>()
 
 const questionTypes = [
-  { label: '单选题', value: 'single' },
-  { label: '多选题', value: 'multiple' },
-  { label: '判断题', value: 'truefalse' },
-  { label: '填空题', value: 'fill_blank' },
-  { label: '简答题', value: 'short_answer' },
+  { label: '单选题', value: 1 },
+  { label: '多选题', value: 2 },
+  { label: '判断题', value: 3 },
+  { label: '简答题', value: 4 },
+  { label: '填空题', value: 5 },
 ]
 
 const form = reactive({
-  type: props.question?.type || 'single',
+  type: props.question?.type || 1,
   content: props.question?.content || '',
   options: props.question?.options
     ? [...props.question.options.map((o: any) => ({ ...o }))]
@@ -140,7 +140,7 @@ const form = reactive({
 const blankAnswers = ref<string[]>([])
 
 // 初始化填空答案
-if (props.question?.type === 'fill_blank' && props.question?.correct_answer) {
+if (props.question?.type === 5 && props.question?.correct_answer) {
   try {
     const arr = JSON.parse(props.question.correct_answer)
     blankAnswers.value = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
@@ -150,7 +150,7 @@ if (props.question?.type === 'fill_blank' && props.question?.correct_answer) {
 }
 
 watch(() => form.type, (newType) => {
-  if (newType === 'truefalse') {
+  if (newType === 3) { // 判断题
     form.options = [
       { key: 'A', value: '正确' },
       { key: 'B', value: '错误' },
@@ -180,7 +180,7 @@ watch(blankCount, (newCount) => {
 
 // 正确答案（从每空的答案合并）
 watch(blankAnswers, () => {
-  if (form.type === 'fill_blank') {
+  if (form.type === 5) { // 填空题
     form.correct_answer = blankAnswers.value.join(',')
   }
 }, { deep: true })
@@ -257,8 +257,8 @@ const getFormData = () => {
   return {
     type: form.type,
     content: form.content,
-    options: ['single', 'multiple', 'truefalse'].includes(form.type) ? form.options : null,
-    correct_answer: form.type === 'fill_blank' ? blankAnswers.value.join(',') : form.correct_answer,
+    options: [1, 2, 3].includes(form.type) ? form.options : null,
+    correct_answer: form.type === 5 ? blankAnswers.value.join(',') : form.correct_answer,
     score: form.score,
     course_id: form.course_id || null,
   }

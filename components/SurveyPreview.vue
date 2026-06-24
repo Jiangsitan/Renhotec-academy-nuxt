@@ -41,7 +41,7 @@ const survey = computed(() => {
     }
 
     switch (q.type) {
-      case 'single':
+      case 1: // 单选题
         elements.push({
           ...base,
           type: 'radiogroup',
@@ -53,7 +53,7 @@ const survey = computed(() => {
         })
         break
 
-      case 'multiple':
+      case 2: // 多选题
         elements.push({
           ...base,
           type: 'checkbox',
@@ -65,7 +65,7 @@ const survey = computed(() => {
         })
         break
 
-      case 'truefalse':
+      case 3: // 判断题
         elements.push({
           ...base,
           type: 'radiogroup',
@@ -77,7 +77,7 @@ const survey = computed(() => {
         })
         break
 
-      case 'fill_blank': {
+      case 5: { // 填空题
         const blanks = (q.content || '').match(/（\s*）/g) || []
         elements.push({
           ...base,
@@ -91,7 +91,7 @@ const survey = computed(() => {
         break
       }
 
-      case 'short_answer':
+      case 4: // 简答题
         elements.push({
           ...base,
           type: 'comment',
