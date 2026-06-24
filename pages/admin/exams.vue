@@ -168,7 +168,7 @@
             <template #header>
               <h3 class="text-base font-semibold">{{ editingQuestionIndex !== null ? '编辑题目' : '添加题目' }}</h3>
             </template>
-            <QuestionEditor ref="questionEditorRef" :question="editingQuestion" :course-options="questionCourseOptions" />
+            <QuestionEditor ref="questionEditorRef" :question="editingQuestion" :course-options="courseOptionsBySeries" />
             <template #footer>
               <div class="flex justify-end gap-3">
                 <UButton color="gray" label="取消" @click="showQuestionForm = false" />
@@ -553,17 +553,6 @@ const handleDeleteExam = async (exam: any) => {
 }
 
 // 题目管理
-const questionCourseOptions = ref<any[]>([])
-
-const loadAllCourses = async () => {
-  try {
-    const res = await api.get<any>('/admin/courses', { per_page: 100 })
-    questionCourseOptions.value = res.data.data.map((c: any) => ({ label: c.title, value: c.id }))
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '加载课程列表失败', color: 'red' })
-  }
-}
-
 const editingQuestion = ref<any>(null)
 const questionEditorRef = ref<any>(null)
 const showPreviewModal = ref(false)
@@ -572,7 +561,6 @@ const previewingQuestion = ref<any>(null)
 const openQuestionForm = (q?: any, idx?: number) => {
   editingQuestionIndex.value = idx ?? null
   editingQuestion.value = q ? { ...q } : null
-  loadAllCourses()
   showQuestionForm.value = true
 }
 
