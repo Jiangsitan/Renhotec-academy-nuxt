@@ -682,7 +682,7 @@ const handleDeleteQuestion = async (idx: number) => {
   }
   
   try {
-    await api.delete(`/admin/exams/${editingExam.value.id}/questions/${question.id}`)
+    await api.del(`/admin/exams/${editingExam.value.id}/questions/${question.id}`)
     questions.value.splice(idx, 1)
     toast.add({ title: '题目已删除', color: 'green' })
   } catch (e: any) {

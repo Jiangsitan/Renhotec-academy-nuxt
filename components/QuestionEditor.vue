@@ -161,10 +161,10 @@ watch(() => form.type, (newType) => {
   }
 })
 
-// 空位数量
+// 空位数量（支持中文括号（）和英文括号()）
 const blankCount = computed(() => {
   if (!form.content) return 0
-  const matches = form.content.match(/（\s*）/g)
+  const matches = form.content.match(/（\s*）|\(\s*\)/g)
   return matches ? matches.length : 0
 })
 
