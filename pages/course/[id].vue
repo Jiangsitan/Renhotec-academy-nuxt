@@ -328,23 +328,34 @@ const getPreviewUrl = (filePathOrUrl: string): string => {
   return token ? `${baseUrl}?token=${token}` : baseUrl
 }
 
+// ========== OSS 直连 URL（公有桶，无需认证） ==========
+const getOssUrl = (path: string): string => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `https://rh-wh.oss-cn-shanghai.aliyuncs.com/${path.replace(/^\//, '')}`
+}
+
 // ========== 课程内容预览 URL ==========
 const previewUrl = computed(() => {
   if (!course.value) return ''
-  // 优先使用 preview_url（如果有转码后的 PDF）
-  if (course.value.preview_url) return getPreviewUrl(course.value.preview_url)
-  return getPreviewUrl(course.value.content_url || '')
+  const contentUrl = course.value.preview_url || course.value.content_url || ''
+  if (!contentUrl) return ''
+  // PDF 文件直接用 OSS URL，不走 PHP 代理（速度更快）
+  if (contentUrl.endsWith('.pdf')) return getOssUrl(contentUrl)
+  // 其他文件走 PHP 代理（需要认证和转换）
+  return getPreviewUrl(contentUrl)
 })
 
 const pptPreviewUrl = computed(() => {
   if (!course.value) return ''
-  // PPT 优先使用转码后的 PDF
-  if (course.value.preview_url) return getPreviewUrl(course.value.preview_url)
-  // 尝试自动查找 _preview.pdf
+  if (course.value.preview_url) {
+    const url = course.value.preview_url
+    return url.endsWith('.pdf') ? getOssUrl(url) : getPreviewUrl(url)
+  }
   const filePath = course.value.content_url || ''
   const previewPath = filePath.replace(/\.(pptx?)$/i, '_preview.pdf')
-  if (previewPath !== filePath) return getPreviewUrl(previewPath)
-  return getPreviewUrl(filePath)
+  if (previewPath !== filePath) return getOssUrl(previewPath)
+  return getOssUrl(filePath)
 })
 
 // ========== 附件预览弹窗逻辑 ==========
