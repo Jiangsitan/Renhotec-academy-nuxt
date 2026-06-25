@@ -1,47 +1,44 @@
 <template>
   <div class="bg-white rounded-xl border border-gray-200 overflow-hidden select-none pdf-viewer" @contextmenu.prevent>
     <!-- 工具栏 -->
-    <div v-if="totalPages > 0" class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
-      <div class="flex items-center gap-2">
-        <button
-          @click="prevPage"
-          :disabled="currentPage <= 1"
-          class="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          <UIcon name="i-heroicons-chevron-left" class="w-4 h-4" />
-        </button>
-        <span class="text-sm text-gray-600">
-          {{ currentPage }} / {{ totalPages }}
-        </span>
-        <button
-          @click="nextPage"
-          :disabled="currentPage >= totalPages"
-          class="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          <UIcon name="i-heroicons-chevron-right" class="w-4 h-4" />
-        </button>
-      </div>
-      <div class="flex items-center gap-2">
+    <div v-if="totalPages > 0" class="flex items-center justify-between px-3 sm:px-4 py-2 bg-gray-50 border-b border-gray-200">
+      <!-- 左侧占位 -->
+      <div class="w-16 sm:w-20"></div>
+
+      <!-- 中间页码 -->
+      <span class="text-xs sm:text-sm text-gray-600 font-medium">
+        {{ currentPage }} / {{ totalPages }}
+      </span>
+
+      <!-- 右侧缩放控制 -->
+      <div class="flex items-center gap-1 sm:gap-2">
         <button
           @click="zoomOut"
           :disabled="scale <= 0.5"
-          class="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          class="p-1 sm:p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <UIcon name="i-heroicons-minus" class="w-4 h-4" />
+          <UIcon name="i-heroicons-minus" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
-        <span class="text-sm text-gray-600 min-w-[3rem] text-center">{{ Math.round(scale * 100) }}%</span>
+        <span class="text-xs sm:text-sm text-gray-600 min-w-[2.5rem] text-center">{{ Math.round(scale * 100) }}%</span>
         <button
           @click="zoomIn"
           :disabled="scale >= 3"
-          class="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          class="p-1 sm:p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <UIcon name="i-heroicons-plus" class="w-4 h-4" />
+          <UIcon name="i-heroicons-plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
     </div>
 
     <!-- PDF 渲染区域 -->
-    <div class="relative overflow-auto" :style="{ maxHeight: maxHeight }">
+    <div
+      class="relative overflow-auto"
+      :style="{ maxHeight: maxHeight }"
+      @mouseenter="showNav = true"
+      @mouseleave="showNav = false"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
       <!-- 加载状态 -->
       <div v-if="loading" class="flex items-center justify-center py-20">
         <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-300 animate-spin" />
@@ -58,13 +55,62 @@
       </div>
 
       <!-- Canvas 容器 -->
-      <div v-else class="flex justify-center py-4">
-        <canvas
-          ref="canvasRef"
-          class="shadow-lg"
-          :style="{ maxWidth: '100%' }"
-        ></canvas>
-      </div>
+      <template v-else>
+        <!-- 左侧翻页按钮 -->
+        <Transition name="nav-btn">
+          <button
+            v-show="currentPage > 1 && (showNav || isMobile)"
+            @click="prevPage"
+            data-testid="prev-button"
+            class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-10
+                   w-9 h-9 sm:w-10 sm:h-10
+                   bg-white/70 hover:bg-white
+                   rounded-full shadow-md hover:shadow-lg
+                   flex items-center justify-center
+                   transition-all duration-200
+                   active:scale-95"
+          >
+            <UIcon name="i-heroicons-chevron-left" class="w-5 h-5 text-gray-600" />
+          </button>
+        </Transition>
+
+        <div class="flex justify-center py-3 sm:py-4">
+          <canvas
+            ref="canvasRef"
+            class="shadow-lg"
+            :style="{ maxWidth: '100%' }"
+          ></canvas>
+        </div>
+
+        <!-- 右侧翻页按钮 -->
+        <Transition name="nav-btn">
+          <button
+            v-show="currentPage < totalPages && (showNav || isMobile)"
+            @click="nextPage"
+            data-testid="next-button"
+            class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-10
+                   w-9 h-9 sm:w-10 sm:h-10
+                   bg-white/70 hover:bg-white
+                   rounded-full shadow-md hover:shadow-lg
+                   flex items-center justify-center
+                   transition-all duration-200
+                   active:scale-95"
+          >
+            <UIcon name="i-heroicons-chevron-right" class="w-5 h-5 text-gray-600" />
+          </button>
+        </Transition>
+
+        <!-- 移动端页码指示器 -->
+        <div class="md:hidden flex justify-center gap-1.5 pb-3">
+          <div
+            v-for="i in totalPages"
+            :key="i"
+            data-testid="page-dot"
+            class="w-1.5 h-1.5 rounded-full transition-colors duration-200"
+            :class="i === currentPage ? 'bg-primary-500' : 'bg-gray-300'"
+          />
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -90,6 +136,12 @@ const error = ref('')
 const currentPage = ref(1)
 const totalPages = ref(0)
 const scale = ref(1.5)
+
+// 响应式状态
+const showNav = ref(false)
+const isMobile = ref(false)
+const touchStartX = ref(0)
+const touchStartY = ref(0)
 
 let pdfDoc: any = null
 let destroyed = false
@@ -279,16 +331,51 @@ const handleKeydown = (e: KeyboardEvent) => {
   ) {
     e.preventDefault()
   }
+
+  // 翻页快捷键
+  if (e.key === 'ArrowLeft') prevPage()
+  if (e.key === 'ArrowRight') nextPage()
+}
+
+// 检测移动端
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
+// 触摸事件处理
+const onTouchStart = (e: TouchEvent) => {
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+}
+
+const onTouchEnd = (e: TouchEvent) => {
+  const dx = e.changedTouches[0].clientX - touchStartX.value
+  const dy = e.changedTouches[0].clientY - touchStartY.value
+  const minSwipeDistance = 30
+
+  // 只处理水平滑动，忽略垂直滑动
+  if (Math.abs(dx) < minSwipeDistance || Math.abs(dx) < Math.abs(dy)) {
+    return
+  }
+
+  if (dx < 0) {
+    nextPage()
+  } else {
+    prevPage()
+  }
 }
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown)
+  window.addEventListener('resize', checkMobile)
+  checkMobile()
   loadPdf()
 })
 
 onBeforeUnmount(() => {
   destroyed = true
   document.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('resize', checkMobile)
   pdfDoc = null
 })
 
@@ -303,5 +390,16 @@ watch(() => props.url, (newUrl) => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+.nav-btn-enter-active,
+.nav-btn-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-btn-enter-from,
+.nav-btn-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 </style>
