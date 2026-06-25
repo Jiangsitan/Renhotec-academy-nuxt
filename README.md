@@ -1,8 +1,22 @@
 # Renhotec Academy - 前端应用
 
-## 项目概述
+> Renhotec Academy 前端是基于 Nuxt 3 构建的单页应用（SPA），提供企业培训和考试的用户界面。
 
-Renhotec Academy 前端是基于 Nuxt 3 构建的单页应用（SPA），提供企业培训和考试的用户界面。
+## 目录
+
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [页面结构](#页面结构)
+- [组件](#组件)
+- [状态管理](#状态管理)
+- [环境变量](#环境变量)
+- [常用命令](#常用命令)
+- [测试](#测试)
+- [开发规范](#开发规范)
+- [构建部署](#构建部署)
+- [浏览器支持](#浏览器支持)
+- [联系方式](#联系方式)
+- [相关链接](#相关链接)
 
 ## 技术栈
 
@@ -357,4 +371,9 @@ docker compose down
 
 - 项目负责人：Lucas Jay
 - 邮箱：2434624535@qq.com
-- 文档更新日期：2026-06-11
+- 文档更新日期：2026-06-24
+
+## 相关链接
+
+- [Renhotec Academy 后端 API](https://github.com/Jiangsitan/renhotec-academy-api)
+- [Renhotec Academy 主仓库](https://github.com/Jiangsitan/renhotec-academy)
