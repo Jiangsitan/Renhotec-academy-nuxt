@@ -27,7 +27,8 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-const api = useApi()
+const toast = useToast()
+const { upload } = useOssUpload()
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 
@@ -43,19 +44,10 @@ const handleSelect = async (e: Event) => {
 
   uploading.value = true
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', 'document')
-
-    const res = await api.apiFetch<any>('/admin/upload/file', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Content-Type': undefined },
-    })
-
-    emit('uploaded', res.data.url)
+    const result = await upload(file, 'image')
+    emit('uploaded', result.url)
   } catch (e: any) {
-    emit('error', e?.data?.message || '图片上传失败')
+    emit('error', e?.message || '图片上传失败')
   } finally {
     uploading.value = false
     input.value = ''

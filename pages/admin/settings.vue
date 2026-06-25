@@ -134,17 +134,9 @@ const uploadImage = async (file: File) => {
 
   uploading.value = true
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', 'document')
-
-    const res = await api.apiFetch<any>('/admin/upload/file', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Content-Type': undefined },
-    })
-
-    form.system_logo = res.data.path ? '/storage/' + res.data.path : res.data.url
+    const { upload } = useOssUpload()
+    const result = await upload(file, 'logo')
+    form.system_logo = result.url
     toast.add({ title: '图片上传成功', color: 'green' })
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '上传失败', color: 'red' })

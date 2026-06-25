@@ -543,7 +543,6 @@ const formatDuration = (seconds: number) => {
 
 const uploadFile = async (file: File) => {
   const isVideo = form.type === 'video'
-  const isLargeFile = file.size > 10 * 1024 * 1024 // 10MB 以上用分片上传
 
   uploading.value = true
   uploadProgress.value = 0
@@ -560,186 +559,34 @@ const uploadFile = async (file: File) => {
   }
 
   try {
-    if (isLargeFile) {
-      // 分片上传（所有大文件）
-      await uploadLargeFile(file)
+    const { upload } = useOssUpload()
+    const result = await upload(file, form.type, {
+      onProgress: (percent) => { uploadProgress.value = percent },
+      onSpeed: (speed) => { uploadSpeed.value = speed },
+    })
+
+    uploadedFile.value = result
+    form.content_url = result.path || result.url
+    form.content_type = result.content_type || 'pdf'
+    form.images = result.images || null
+    form.file_name = result.file_name
+    form.file_size = result.file_size
+    uploading.value = false
+    canCancel.value = false
+
+    if (result.converting) {
+      toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
     } else {
-      // 普通上传（小文件，带进度）
-      await uploadSmallFile(file)
+      toast.add({ title: '文件上传成功', color: 'green' })
     }
   } catch (e: any) {
     if (e.message === 'cancelled') {
       toast.add({ title: '上传已取消', color: 'orange' })
     } else {
-      toast.add({ title: e?.data?.message || e?.message || '上传失败', color: 'red' })
+      toast.add({ title: e?.message || '上传失败', color: 'red' })
     }
     uploading.value = false
-  }
-}
-
-const uploadSmallFile = async (file: File) => {
-  return new Promise((resolve, reject) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', form.type)
-
-    const xhr = new XMLHttpRequest()
-    const authStore = useAuthStore()
-    currentXhr.value = xhr
-
-    let lastLoaded = 0
-    let lastTime = Date.now()
-
-    // 监听上传进度
-    xhr.upload.addEventListener('progress', (e) => {
-      if (e.lengthComputable) {
-        const now = Date.now()
-        const timeDiff = (now - lastTime) / 1000
-        
-        if (timeDiff > 0.5) {
-          const loadedDiff = e.loaded - lastLoaded
-          uploadSpeed.value = Math.round(loadedDiff / timeDiff)
-          lastLoaded = e.loaded
-          lastTime = now
-        }
-        
-        uploadProgress.value = Math.round((e.loaded / e.total) * 100)
-      }
-    })
-
-    // 监听完成
-    xhr.addEventListener('load', () => {
-      currentXhr.value = null
-      canCancel.value = false
-      
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const res = JSON.parse(xhr.responseText)
-        
-        uploadedFile.value = res.data
-        form.content_url = res.data.path || res.data.url
-        form.content_type = res.data.content_type || 'pdf'
-        form.images = res.data.images || null
-        form.file_name = res.data.file_name
-        form.file_size = res.data.file_size
-        uploading.value = false
-        uploadProgress.value = 100
-
-        toast.add({ title: '文件上传成功', color: 'green' })
-        resolve(res)
-      } else {
-        let errorMsg = '上传失败'
-        try {
-          const error = JSON.parse(xhr.responseText)
-          errorMsg = error.message || errorMsg
-        } catch {}
-        reject(new Error(errorMsg))
-      }
-    })
-
-    // 监听错误
-    xhr.addEventListener('error', () => {
-      currentXhr.value = null
-      canCancel.value = false
-      reject(new Error('网络错误'))
-    })
-
-    // 监听超时
-    xhr.addEventListener('timeout', () => {
-      currentXhr.value = null
-      canCancel.value = false
-      reject(new Error('上传超时'))
-    })
-
-    // 监听取消
-    xhr.addEventListener('abort', () => {
-      currentXhr.value = null
-      canCancel.value = false
-      reject(new Error('cancelled'))
-    })
-
-    xhr.open('POST', '/api/admin/upload/file')
-    xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
-    xhr.timeout = 300000 // 5 分钟超时
-    xhr.send(formData)
-  })
-}
-
-const uploadLargeFile = async (file: File) => {
-  const chunkSize = 5 * 1024 * 1024 // 5MB 每片
-  const totalChunks = Math.ceil(file.size / chunkSize)
-
-  // 1. 初始化上传
-  const initRes = await api.post<any>('/admin/upload/init', {
-    file_name: file.name,
-    file_size: file.size,
-    total_chunks: totalChunks,
-    type: form.type,
-  })
-  const uploadId = initRes.data.upload_id
-  currentUploadId.value = uploadId
-
-  let lastTime = Date.now()
-  let lastLoaded = 0
-
-  // 2. 逐个上传分片
-  for (let i = 0; i < totalChunks; i++) {
-    // 检查是否已取消
-    if (!uploading.value) {
-      // 取消时清理已上传的分片
-      await api.del(`/admin/upload/${uploadId}/cancel`).catch(() => {})
-      currentUploadId.value = null
-      throw new Error('cancelled')
-    }
-
-    const start = i * chunkSize
-    const end = Math.min(start + chunkSize, file.size)
-    const chunk = file.slice(start, end)
-
-    const formData = new FormData()
-    formData.append('upload_id', uploadId)
-    formData.append('chunk_index', String(i))
-    formData.append('chunk', chunk, `chunk_${i}`)
-
-    await api.apiFetch<any>('/admin/upload/chunk', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Content-Type': undefined },
-    })
-
-    // 计算上传速度
-    const now = Date.now()
-    const loaded = end
-    const timeDiff = (now - lastTime) / 1000
-    
-    if (timeDiff > 0.5) {
-      const loadedDiff = loaded - lastLoaded
-      uploadSpeed.value = Math.round(loadedDiff / timeDiff)
-      lastLoaded = loaded
-      lastTime = now
-    }
-
-    uploadProgress.value = Math.round(((i + 1) / totalChunks) * 100)
-  }
-
-  currentUploadId.value = null
-
-  // 3. 完成上传（异步处理，立即返回）
-  const completeRes = await api.post<any>('/admin/upload/complete', { upload_id: uploadId })
-
-  // 立即设置文件信息
-  uploadedFile.value = completeRes.data
-  form.content_url = completeRes.data.path || completeRes.data.url
-  form.content_type = completeRes.data.content_type || 'pdf'
-  form.images = completeRes.data.images || null
-  form.file_name = completeRes.data.file_name
-  form.file_size = completeRes.data.file_size
-  uploading.value = false
-
-  // 检查是否需要转换
-  if (completeRes.data.converting) {
-    toast.add({ title: '文件上传成功，正在后台转换...', color: 'blue' })
-  } else {
-    toast.add({ title: '文件上传成功', color: 'green' })
+    canCancel.value = false
   }
 }
 
@@ -804,24 +651,17 @@ const uploadAttachmentFiles = async (files: File[]) => {
   uploadingTotal.value = files.length
   uploadingIndex.value = 0
 
+  const { upload } = useOssUpload()
+
   for (let i = 0; i < files.length; i++) {
     uploadingIndex.value = i
     attachmentProgress.value = Math.round((i / files.length) * 100)
 
     try {
-      const formData = new FormData()
-      formData.append('file', files[i])
-      formData.append('type', 'document')
-
-      const res = await api.apiFetch<any>('/admin/upload/file', {
-        method: 'POST',
-        body: formData,
-        headers: { 'Content-Type': undefined },
-      })
-
-      uploadedAttachments.value.push(res.data)
+      const result = await upload(files[i], 'attachment')
+      uploadedAttachments.value.push(result)
     } catch (e: any) {
-      toast.add({ title: `文件 ${files[i].name} 上传失败: ${e?.data?.message || '上传失败'}`, color: 'red' })
+      toast.add({ title: `文件 ${files[i].name} 上传失败: ${e?.message || '上传失败'}`, color: 'red' })
     }
   }
 

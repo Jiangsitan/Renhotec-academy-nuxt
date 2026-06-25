@@ -171,18 +171,12 @@ const uploadCover = async (file: File) => {
     return
   }
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', 'document')
-    const res = await api.apiFetch<any>('/admin/upload/file', {
-      method: 'POST',
-      body: formData,
-      headers: { 'Content-Type': undefined },
-    })
-    form.cover_image = res.data.url
+    const { upload } = useOssUpload()
+    const result = await upload(file, 'cover')
+    form.cover_image = result.url
     toast.add({ title: '封面图上传成功', color: 'green' })
   } catch (e: any) {
-    toast.add({ title: e?.data?.message || '上传失败', color: 'red' })
+    toast.add({ title: e?.message || '上传失败', color: 'red' })
   }
 }
 
