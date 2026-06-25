@@ -32,7 +32,7 @@ export const useOssUpload = () => {
   }
 
   /**
-   * 小文件直传（签名 PUT URL）
+   * 小文件直传（签名 PUT URL，不发送 Content-Type 头以匹配签名）
    */
   const uploadSmall = async (file: File, type: string, options?: {
     onProgress?: (percent: number) => void
@@ -46,7 +46,7 @@ export const useOssUpload = () => {
 
     const { upload_url, oss_path } = presignRes.data
 
-    // 2. 直传到 OSS
+    // 2. 直传到 OSS（不设置 Content-Type，与签名一致）
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       let lastLoaded = 0
@@ -80,7 +80,6 @@ export const useOssUpload = () => {
       xhr.addEventListener('abort', () => reject(new Error('上传已取消')))
 
       xhr.open('PUT', upload_url)
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
       xhr.send(file)
     })
 
@@ -94,7 +93,7 @@ export const useOssUpload = () => {
   }
 
   /**
-   * 大文件分片直传（OSS Multipart Upload）
+   * 大文件分片直传（OSS Multipart Upload，不发送 Content-Type 头以匹配签名）
    */
   const uploadLarge = async (file: File, type: string, options?: {
     onProgress?: (percent: number) => void
@@ -125,7 +124,7 @@ export const useOssUpload = () => {
         body: { upload_id, oss_path, part_number: i + 1 },
       })
 
-      // 上传分片到 OSS
+      // 上传分片到 OSS（不设置 Content-Type，与签名一致）
       const etag = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
 
@@ -157,9 +156,13 @@ export const useOssUpload = () => {
         xhr.addEventListener('error', () => reject(new Error('网络错误')))
 
         xhr.open('PUT', signRes.data.signed_url)
-        xhr.setRequestHeader('Content-Type', 'application/octet-stream')
         xhr.send(chunk)
       })
+
+      // 分片失败时提前中断
+      if (!etag) {
+        throw new Error(`分片 ${i + 1} 上传失败：未获取到 ETag`)
+      }
 
       parts.push({ part_number: i + 1, etag })
       uploadedBytes += chunk.size
