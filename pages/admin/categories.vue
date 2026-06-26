@@ -2,15 +2,12 @@
   <div>
     <div class="flex items-center gap-3 mb-4">
       <div class="flex-1" />
+      <UButton icon="i-heroicons-bars-arrow-up" label="排序" color="gray" @click="openParentSortModal" />
       <UButton icon="i-heroicons-plus" label="添加分类" @click="openModal()" />
     </div>
 
     <UCard>
-      <UTable :rows="categories" :columns="columns" :loading="loading">
-        <template #parent-data="{ row }">
-          <span v-if="row.parent" class="text-xs text-gray-500">{{ row.parent.name }}</span>
-          <span v-else class="text-xs text-gray-400">—</span>
-        </template>
+      <UTable :rows="parentCategories" :columns="columns" :loading="loading">
         <template #children_count-data="{ row }">
           <UBadge :label="`${row.children_count ?? 0} 个子分类`" color="primary" variant="subtle" size="xs" />
         </template>
@@ -20,14 +17,14 @@
         <template #actions-data="{ row }">
           <div class="flex items-center gap-1">
             <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" @click="openModal(row)" />
-            <UButton v-if="!row.parent_id && row.children_count > 0" color="gray" variant="ghost" icon="i-heroicons-bars-arrow-up" size="xs" label="排序" @click="openSortModal(row)" />
+            <UButton color="primary" variant="ghost" icon="i-heroicons-folder-open" size="xs" label="子分类" @click="openChildModal(row)" />
             <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDelete(row)" />
           </div>
         </template>
       </UTable>
     </UCard>
 
-    <!-- 添加/编辑弹窗 -->
+    <!-- 添加/编辑分类弹窗 -->
     <UModal v-model="showModal">
       <UCard>
         <template #header>
@@ -53,18 +50,18 @@
       </UCard>
     </UModal>
 
-    <!-- 排序弹窗 -->
-    <UModal v-model="showSortModal" :prevent-close="sortSaving">
+    <!-- 一级分类排序弹窗 -->
+    <UModal v-model="showParentSortModal" :prevent-close="sortSaving">
       <UCard class="max-w-xl">
         <template #header>
-          <h3 class="text-base font-semibold">子分类排序 — {{ sortParentName }}</h3>
+          <h3 class="text-base font-semibold">一级分类排序</h3>
         </template>
-        <p class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整子分类顺序，排序结果将在用户端生效</p>
+        <p class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整一级分类顺序，排序结果将在用户端生效</p>
 
-        <div v-if="sortItems.length === 0" class="text-center py-8 text-sm text-gray-400">该分类暂无子分类</div>
+        <div v-if="parentSortItems.length === 0" class="text-center py-8 text-sm text-gray-400">暂无一级分类</div>
         <div v-else class="space-y-1">
           <div
-            v-for="(item, idx) in sortItems"
+            v-for="(item, idx) in parentSortItems"
             :key="item.id"
             :draggable="true"
             @dragstart="onSortDragStart(idx)"
@@ -80,15 +77,83 @@
             <span class="flex-1 text-sm truncate">{{ item.name }}</span>
             <div class="flex items-center gap-0.5 shrink-0">
               <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveSortItem(idx, -1)" />
-              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === sortItems.length - 1" @click="moveSortItem(idx, 1)" />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === parentSortItems.length - 1" @click="moveSortItem(idx, 1)" />
             </div>
           </div>
         </div>
 
         <template #footer>
           <div class="flex justify-end gap-3">
-            <UButton color="gray" label="取消" @click="closeSortModal" />
-            <UButton label="保存排序" :loading="sortSaving" :disabled="sortItems.length === 0" @click="saveSortOrder" />
+            <UButton color="gray" label="取消" @click="showParentSortModal = false" />
+            <UButton label="保存排序" :loading="sortSaving" :disabled="parentSortItems.length === 0" @click="saveParentSort" />
+          </div>
+        </template>
+      </UCard>
+    </UModal>
+
+    <!-- 子分类管理弹窗 -->
+    <UModal v-model="showChildModal" :prevent-close="childSaving">
+      <UCard class="max-w-xl">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">子分类管理 — {{ childParentName }}</h3>
+            <UButton icon="i-heroicons-plus" size="xs" label="添加子分类" @click="openChildEditModal()" />
+          </div>
+        </template>
+
+        <div v-if="childItems.length === 0" class="text-center py-8 text-sm text-gray-400">暂无子分类</div>
+        <div v-else class="space-y-1">
+          <div
+            v-for="(item, idx) in childItems"
+            :key="item.id"
+            :draggable="true"
+            @dragstart="onChildDragStart(idx)"
+            @dragover.prevent="onChildDragOver(idx)"
+            @dragend="onChildDragEnd"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-default"
+            :class="childDragOverIdx === idx ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <UIcon name="i-heroicons-bars-3" class="w-5 h-5 text-gray-400 cursor-grab shrink-0" />
+            <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+              :class="idx < 3 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'"
+            >{{ idx + 1 }}</span>
+            <span class="flex-1 text-sm truncate">{{ item.name }}</span>
+            <div class="flex items-center gap-0.5 shrink-0">
+              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveChildItem(idx, -1)" />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === childItems.length - 1" @click="moveChildItem(idx, 1)" />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" @click="openChildEditModal(item)" />
+              <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDeleteChild(item)" />
+            </div>
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="gray" label="取消" @click="closeChildModal" />
+            <UButton label="保存排序" :loading="childSaving" :disabled="childItems.length === 0" @click="saveChildSort" />
+          </div>
+        </template>
+      </UCard>
+    </UModal>
+
+    <!-- 子分类添加/编辑弹窗 -->
+    <UModal v-model="showChildEditModal_">
+      <UCard>
+        <template #header>
+          <h3 class="text-base font-semibold">{{ childEditing ? '编辑子分类' : '添加子分类' }}</h3>
+        </template>
+        <UForm :state="childForm" class="space-y-4">
+          <UFormGroup label="子分类名称" required>
+            <UInput v-model="childForm.name" placeholder="如：新员工入职、产品知识" />
+          </UFormGroup>
+          <UFormGroup label="排序" description="数字越小越靠前">
+            <UInput v-model.number="childForm.sort_order" type="number" placeholder="0" />
+          </UFormGroup>
+        </UForm>
+        <template #footer>
+          <div class="flex justify-end gap-3">
+            <UButton color="gray" label="取消" @click="showChildEditModal_ = false" />
+            <UButton :label="childEditing ? '保存' : '创建'" :loading="childEditSaving" @click="handleChildEditSubmit" />
           </div>
         </template>
       </UCard>
@@ -111,18 +176,13 @@ const parentOptions = ref<any[]>([])
 
 const form = reactive({ name: '', parent_id: '', sort_order: 0 })
 
-// 排序弹窗状态
-const showSortModal = ref(false)
-const sortSaving = ref(false)
-const sortParentId = ref<number | null>(null)
-const sortParentName = ref('')
-const sortItems = ref<any[]>([])
-const sortDragIdx = ref<number | null>(null)
-const sortDragOverIdx = ref<number | null>(null)
+// 只取一级分类
+const parentCategories = computed(() => {
+  return categories.value.filter(c => !c.parent_id).sort((a, b) => a.sort_order - b.sort_order)
+})
 
 const columns = [
   { key: 'name', label: '分类名称' },
-  { key: 'parent', label: '父级分类' },
   { key: 'children_count', label: '子分类数' },
   { key: 'series_count', label: '关联系列' },
   { key: 'sort_order', label: '排序' },
@@ -134,7 +194,6 @@ const loadCategories = async () => {
   try {
     const res = await api.get<any>('/admin/categories')
     categories.value = res.data
-    // 只有一级分类可以作为父级
     parentOptions.value = [
       { label: '无（一级分类）', value: '' },
       ...res.data.filter((c: any) => !c.parent_id).map((c: any) => ({ label: c.name, value: c.id })),
@@ -193,35 +252,29 @@ const handleDelete = async (cat: any) => {
   }
 }
 
-// ==================== 排序逻辑 ====================
+// ==================== 一级分类排序 ====================
 
-const openSortModal = (parent: any) => {
-  sortParentId.value = parent.id
-  sortParentName.value = parent.name
-  const parentCat = categories.value.find(c => c.id === parent.id)
-  sortItems.value = (parentCat?.children || []).map((c: any) => ({
+const showParentSortModal = ref(false)
+const sortSaving = ref(false)
+const parentSortItems = ref<any[]>([])
+const sortDragIdx = ref<number | null>(null)
+const sortDragOverIdx = ref<number | null>(null)
+
+const openParentSortModal = () => {
+  parentSortItems.value = parentCategories.value.map(c => ({
     id: c.id,
     name: c.name,
     sort_order: c.sort_order,
   }))
   sortDragIdx.value = null
   sortDragOverIdx.value = null
-  showSortModal.value = true
-}
-
-const closeSortModal = () => {
-  showSortModal.value = false
-  sortParentId.value = null
-  sortParentName.value = ''
-  sortItems.value = []
-  sortDragIdx.value = null
-  sortDragOverIdx.value = null
+  showParentSortModal.value = true
 }
 
 const moveSortItem = (idx: number, dir: number) => {
   const target = idx + dir
-  if (target < 0 || target >= sortItems.value.length) return
-  const arr = sortItems.value
+  if (target < 0 || target >= parentSortItems.value.length) return
+  const arr = parentSortItems.value
   ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
 }
 
@@ -235,7 +288,7 @@ const onSortDragOver = (idx: number) => {
 
 const onSortDragEnd = () => {
   if (sortDragIdx.value !== null && sortDragOverIdx.value !== null && sortDragIdx.value !== sortDragOverIdx.value) {
-    const arr = sortItems.value
+    const arr = parentSortItems.value
     const [moved] = arr.splice(sortDragIdx.value, 1)
     arr.splice(sortDragOverIdx.value, 0, moved)
   }
@@ -243,18 +296,171 @@ const onSortDragEnd = () => {
   sortDragOverIdx.value = null
 }
 
-const saveSortOrder = async () => {
+const saveParentSort = async () => {
   sortSaving.value = true
   try {
-    const orders = sortItems.value.map((item, idx) => ({ id: item.id, sort_order: idx }))
+    const orders = parentSortItems.value.map((item, idx) => ({ id: item.id, sort_order: idx }))
     await api.put('/admin/categories/reorder', { orders })
     toast.add({ title: '排序已更新', color: 'green' })
-    closeSortModal()
+    showParentSortModal.value = false
     await loadCategories()
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '保存失败', color: 'red' })
   }
   sortSaving.value = false
+}
+
+// ==================== 子分类管理 ====================
+
+const showChildModal = ref(false)
+const childSaving = ref(false)
+const childParentId = ref<number | null>(null)
+const childParentName = ref('')
+const childItems = ref<any[]>([])
+const childDragIdx = ref<number | null>(null)
+const childDragOverIdx = ref<number | null>(null)
+
+// 子分类编辑
+const showChildEditModal_ = ref(false)
+const childEditSaving = ref(false)
+const childEditing = ref<any>(null)
+const childForm = reactive({ name: '', sort_order: 0 })
+
+const openChildModal = (parent: any) => {
+  childParentId.value = parent.id
+  childParentName.value = parent.name
+  const parentCat = categories.value.find(c => c.id === parent.id)
+  childItems.value = (parentCat?.children || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    sort_order: c.sort_order,
+    series_count: c.series_count ?? 0,
+  })).sort((a, b) => a.sort_order - b.sort_order)
+  childDragIdx.value = null
+  childDragOverIdx.value = null
+  showChildModal.value = true
+}
+
+const closeChildModal = () => {
+  showChildModal.value = false
+  childParentId.value = null
+  childParentName.value = ''
+  childItems.value = []
+  childDragIdx.value = null
+  childDragOverIdx.value = null
+}
+
+const moveChildItem = (idx: number, dir: number) => {
+  const target = idx + dir
+  if (target < 0 || target >= childItems.value.length) return
+  const arr = childItems.value
+  ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+}
+
+const onChildDragStart = (idx: number) => {
+  childDragIdx.value = idx
+}
+
+const onChildDragOver = (idx: number) => {
+  childDragOverIdx.value = idx
+}
+
+const onChildDragEnd = () => {
+  if (childDragIdx.value !== null && childDragOverIdx.value !== null && childDragIdx.value !== childDragOverIdx.value) {
+    const arr = childItems.value
+    const [moved] = arr.splice(childDragIdx.value, 1)
+    arr.splice(childDragOverIdx.value, 0, moved)
+  }
+  childDragIdx.value = null
+  childDragOverIdx.value = null
+}
+
+const saveChildSort = async () => {
+  childSaving.value = true
+  try {
+    const orders = childItems.value.map((item, idx) => ({ id: item.id, sort_order: idx }))
+    await api.put('/admin/categories/reorder', { orders })
+    toast.add({ title: '子分类排序已更新', color: 'green' })
+    closeChildModal()
+    await loadCategories()
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '保存失败', color: 'red' })
+  }
+  childSaving.value = false
+}
+
+// 子分类 CRUD
+const openChildEditModal = (cat?: any) => {
+  childEditing.value = cat || null
+  if (cat) {
+    Object.assign(childForm, { name: cat.name, sort_order: cat.sort_order || 0 })
+  } else {
+    Object.assign(childForm, { name: '', sort_order: 0 })
+  }
+  showChildEditModal_.value = true
+}
+
+const handleChildEditSubmit = async () => {
+  if (!childForm.name) {
+    toast.add({ title: '请输入子分类名称', color: 'red' })
+    return
+  }
+  childEditSaving.value = true
+  try {
+    if (childEditing.value) {
+      await api.put(`/admin/categories/${childEditing.value.id}`, {
+        name: childForm.name,
+        sort_order: childForm.sort_order,
+      })
+      toast.add({ title: '子分类已更新', color: 'green' })
+    } else {
+      await api.post('/admin/categories', {
+        name: childForm.name,
+        parent_id: childParentId.value,
+        sort_order: childForm.sort_order,
+      })
+      toast.add({ title: '子分类创建成功', color: 'green' })
+    }
+    showChildEditModal_.value = false
+    // 重新加载数据并刷新子分类列表
+    await loadCategories()
+    const parentCat = categories.value.find(c => c.id === childParentId.value)
+    if (parentCat) {
+      childItems.value = (parentCat.children || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        sort_order: c.sort_order,
+        series_count: c.series_count ?? 0,
+      })).sort((a, b) => a.sort_order - b.sort_order)
+    }
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '操作失败', color: 'red' })
+  }
+  childEditSaving.value = false
+}
+
+const handleDeleteChild = async (cat: any) => {
+  if (cat.series_count > 0) {
+    toast.add({ title: '该分类下存在系列，无法删除', color: 'red' })
+    return
+  }
+  try {
+    await api.del(`/admin/categories/${cat.id}`)
+    toast.add({ title: '子分类已删除', color: 'green' })
+    await loadCategories()
+    // 刷新子分类列表
+    const parentCat = categories.value.find(c => c.id === childParentId.value)
+    if (parentCat) {
+      childItems.value = (parentCat.children || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        sort_order: c.sort_order,
+        series_count: c.series_count ?? 0,
+      })).sort((a, b) => a.sort_order - b.sort_order)
+    }
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '删除失败', color: 'red' })
+  }
 }
 
 onMounted(loadCategories)
