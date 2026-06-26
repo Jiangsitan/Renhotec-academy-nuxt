@@ -14,35 +14,18 @@
       <div class="text-center">
         <h1 class="text-xl font-bold text-gray-900 mb-2">{{ record.exam?.title }}</h1>
         <div class="text-5xl font-bold my-4" :class="isPassed ? 'text-green-600' : 'text-red-500'">
-          {{ record.total_score != null ? formatScore(record.total_score) : '评分待审核' }}
+          {{ record.total_score != null ? formatScore(record.total_score) : '未通过' }}
         </div>
         <div class="text-sm text-gray-500">
           <span v-if="record.exam?.passing_score">及格线: {{ formatScore(record.exam.passing_score) }} 分</span>
         </div>
         <div class="mt-2">
           <UBadge v-if="record.status === 3" label="待批改" color="orange" variant="subtle" />
-          <UBadge v-else-if="record.status === 5" label="已驳回" color="red" variant="subtle" />
           <UBadge v-else-if="isPassed" label="通过" color="green" variant="subtle" />
           <UBadge v-else label="未通过" color="red" variant="subtle" />
         </div>
         
-        <!-- 驳回状态提示 -->
-        <div v-if="record.status === 5" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-          <div class="flex items-center gap-2 mb-2">
-            <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-600" />
-            <span class="text-sm font-medium text-red-700">试卷已驳回</span>
-          </div>
-          <p class="text-sm text-red-600 mb-3">{{ record.mentor_comment || '导师驳回了您的试卷，请补充回答后重新提交' }}</p>
-          <UButton
-            @click="handleResubmit"
-            label="补充回答"
-            color="red"
-            icon="i-heroicons-arrow-path"
-            size="sm"
-          />
-        </div>
-        
-        <div v-else-if="record.mentor_comment" class="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-3 text-left">
+        <div v-if="record.mentor_comment" class="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-3 text-left">
           <span class="font-medium">导师评语：</span>{{ record.mentor_comment }}
         </div>
 
@@ -513,10 +496,6 @@ const shouldShowCourseReview = (answer: any) => {
 
 // 重新提交
 const showExamModal = ref(false)
-
-const handleResubmit = () => {
-  showExamModal.value = true
-}
 
 const handleRetake = () => {
   showExamModal.value = true
