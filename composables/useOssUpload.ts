@@ -80,7 +80,7 @@ export const useOssUpload = () => {
       xhr.addEventListener('abort', () => reject(new Error('上传已取消')))
 
       xhr.open('PUT', upload_url)
-      xhr.send(file)
+      xhr.send(new Blob([file], { type: '' }))
     })
 
     // 3. 通知后端上传完成
@@ -156,7 +156,7 @@ export const useOssUpload = () => {
         xhr.addEventListener('error', () => reject(new Error('网络错误')))
 
         xhr.open('PUT', signRes.data.signed_url)
-        xhr.send(chunk)
+        xhr.send(new Blob([chunk], { type: '' }))
       })
 
       // 分片失败时提前中断
