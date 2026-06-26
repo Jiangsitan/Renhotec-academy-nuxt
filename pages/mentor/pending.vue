@@ -87,9 +87,9 @@
             </div>
             <span
               class="text-sm px-2 py-0.5 rounded-full"
-              :class="record.status === 5 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'"
+              :class="record.total_score >= record.exam?.passing_score ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'"
             >
-              {{ record.status === 5 ? '已驳回' : '已通过' }}
+              {{ record.total_score >= record.exam?.passing_score ? '通过' : '未通过' }}
             </span>
           </div>
 
@@ -168,10 +168,7 @@
         </div>
 
         <div class="mb-4">
-          <label class="text-sm text-gray-600 block mb-1">
-            导师评语
-            <span class="text-gray-400">（驳回时必填）</span>
-          </label>
+          <label class="text-sm text-gray-600 block mb-1">导师评语</label>
           <textarea
             v-model="comment"
             rows="3"
@@ -199,15 +196,6 @@
             class="flex-1 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
           >
             {{ submitting ? '提交中...' : '提交批改' }}
-          </button>
-
-          <!-- 驳回按钮 -->
-          <button
-            @click="handleReject"
-            :disabled="submitting"
-            class="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            驳回
           </button>
 
           <!-- 取消 -->
@@ -481,30 +469,6 @@ const submitReview = async () => {
     toast.add({ title: '批改完成', color: 'green' })
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '批改失败', color: 'red' })
-  } finally {
-    submitting.value = false
-  }
-}
-
-// 驳回
-const handleReject = async () => {
-  if (!comment.value.trim()) {
-    toast.add({ title: '驳回时请输入评语，说明驳回原因', color: 'red' })
-    return
-  }
-  
-  submitting.value = true
-  try {
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      subjective_scores: {},
-      comment: comment.value,
-      action: 'reject',
-    })
-    showModal.value = false
-    await loadPendingRecords()
-    toast.add({ title: '已驳回，学生将收到通知', color: 'green' })
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '驳回失败', color: 'red' })
   } finally {
     submitting.value = false
   }

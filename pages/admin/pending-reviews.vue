@@ -197,9 +197,6 @@
         </div>
 
         <UFormGroup label="导师评语">
-          <template #hint>
-            <span class="text-gray-400">（驳回时必填）</span>
-          </template>
           <UTextarea v-model="reviewComment" placeholder="输入评语..." :rows="3" />
         </UFormGroup>
 
@@ -220,14 +217,6 @@
               label="提交批改"
               :loading="reviewing"
               @click="handleReview"
-            />
-
-            <!-- 驳回按钮 -->
-            <UButton
-              label="驳回"
-              color="red"
-              :loading="reviewing"
-              @click="handleReject"
             />
 
             <!-- 取消 -->
@@ -692,30 +681,6 @@ const handleReview = async () => {
     toast.add({ title: e?.data?.message || '批改失败', color: 'red' })
   }
   reviewing.value = false
-}
-
-// 驳回
-const handleReject = async () => {
-  if (!reviewComment.value.trim()) {
-    toast.add({ title: '驳回时请输入评语，说明驳回原因', color: 'red' })
-    return
-  }
-  
-  reviewing.value = true
-  try {
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      subjective_scores: {},
-      comment: reviewComment.value,
-      action: 'reject',
-    })
-    toast.add({ title: '已驳回，学生将收到通知', color: 'green' })
-    showReviewModal.value = false
-    await loadRecords(currentPage.value)
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '驳回失败', color: 'red' })
-  } finally {
-    reviewing.value = false
-  }
 }
 
 onMounted(() => {
