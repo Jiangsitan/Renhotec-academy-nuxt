@@ -111,9 +111,9 @@ const loadRecords = async (page = 1) => {
 const formatDate = (d: string) => d ? new Date(d).toLocaleString('zh-CN') : '-'
 
 const getStatusLabel = (r: any) => {
-  if (r.status === 'pending_review') return '待批改'
-  if (r.status === 'rejected') return '已驳回'
-  if (r.status === 'graded' || r.status === 'auto_graded') {
+  if (r.status === 3) return '待批改'
+  if (r.status === 5) return '已驳回'
+  if (r.status === 4 || r.status === 2) {
     if (r.total_score !== null && r.exam?.passing_score) {
       return r.total_score >= r.exam.passing_score ? '通过' : '未通过'
     }
@@ -123,8 +123,8 @@ const getStatusLabel = (r: any) => {
 }
 
 const getStatusClass = (r: any) => {
-  if (r.status === 'pending_review') return 'bg-orange-100 text-orange-600'
-  if (r.status === 'rejected') return 'bg-red-100 text-red-600'
+  if (r.status === 3) return 'bg-orange-100 text-orange-600'
+  if (r.status === 5) return 'bg-red-100 text-red-600'
   if (r.total_score !== null && r.exam?.passing_score) {
     return r.total_score >= r.exam.passing_score
       ? 'bg-green-100 text-green-600'
@@ -134,8 +134,8 @@ const getStatusClass = (r: any) => {
 }
 
 const getStatusIcon = (r: any) => {
-  if (r.status === 'pending_review') return 'i-heroicons-clock'
-  if (r.status === 'rejected') return 'i-heroicons-exclamation-triangle'
+  if (r.status === 3) return 'i-heroicons-clock'
+  if (r.status === 5) return 'i-heroicons-exclamation-triangle'
   if (r.total_score !== null && r.exam?.passing_score) {
     return r.total_score >= r.exam.passing_score ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'
   }
@@ -143,8 +143,8 @@ const getStatusIcon = (r: any) => {
 }
 
 const getStatusColor = (r: any) => {
-  if (r.status === 'pending_review') return 'orange'
-  if (r.status === 'rejected') return 'red'
+  if (r.status === 3) return 'orange'
+  if (r.status === 5) return 'red'
   if (r.total_score !== null && r.exam?.passing_score) {
     return r.total_score >= r.exam.passing_score ? 'green' : 'red'
   }
@@ -152,8 +152,8 @@ const getStatusColor = (r: any) => {
 }
 
 const getScoreClass = (r: any) => {
-  if (r.status === 'pending_review') return 'text-orange-500'
-  if (r.status === 'rejected') return 'text-red-500'
+  if (r.status === 3) return 'text-orange-500'
+  if (r.status === 5) return 'text-red-500'
   if (r.total_score !== null && r.exam?.passing_score) {
     return r.total_score >= r.exam.passing_score ? 'text-green-600' : 'text-red-500'
   }

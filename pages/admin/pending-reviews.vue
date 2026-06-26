@@ -69,7 +69,7 @@
         <template #actions-data="{ row }">
           <div class="flex items-center gap-1">
             <!-- 待批改状态：分配 + 批改 -->
-            <template v-if="row.status === 'pending_review'">
+            <template v-if="row.status === 3">
               <UButton color="primary" variant="ghost" icon="i-heroicons-user-plus" size="xs" label="分配" @click="openAssignModal(row)" />
               <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" label="批改" @click="openReviewModal(row)" />
             </template>
@@ -280,9 +280,9 @@ const departmentOptions = ref<any[]>([{ label: '全部部门', value: '' }])
 
 const statusOptions = [
   { label: '全部', value: '' },
-  { label: '待批改', value: 'pending_review' },
-  { label: '已批改', value: 'graded' },
-  { label: '已驳回', value: 'rejected' },
+  { label: '待批改', value: '3' },
+  { label: '已批改', value: '4' },
+  { label: '已驳回', value: '5' },
 ]
 
 const cheatFilterOptions = [
@@ -311,9 +311,9 @@ const isAllAutoGraded = computed(() => {
 })
 
 const getStatusLabel = (r: any) => {
-  if (r.status === 'pending_review') return '待批改'
-  if (r.status === 'rejected') return '已驳回'
-  if (r.status === 'graded' || r.status === 'auto_graded') {
+  if (r.status === 3) return '待批改'
+  if (r.status === 5) return '已驳回'
+  if (r.status === 4 || r.status === 2) {
     if (r.total_score !== null && r.exam?.passing_score) {
       return r.total_score >= r.exam.passing_score ? '已通过' : '未通过'
     }
@@ -323,9 +323,9 @@ const getStatusLabel = (r: any) => {
 }
 
 const getStatusColor = (r: any) => {
-  if (r.status === 'pending_review') return 'orange'
-  if (r.status === 'rejected') return 'red'
-  if (r.status === 'graded' || r.status === 'auto_graded') {
+  if (r.status === 3) return 'orange'
+  if (r.status === 5) return 'red'
+  if (r.status === 4 || r.status === 2) {
     if (r.total_score !== null && r.exam?.passing_score) {
       return r.total_score >= r.exam.passing_score ? 'green' : 'red'
     }
@@ -335,7 +335,7 @@ const getStatusColor = (r: any) => {
 }
 
 const getScoreClass = (r: any) => {
-  if (r.status === 'graded' || r.status === 'auto_graded') {
+  if (r.status === 4 || r.status === 2) {
     if (r.total_score !== null && r.exam?.passing_score) {
       return r.total_score >= r.exam.passing_score ? 'text-green-600' : 'text-red-500'
     }

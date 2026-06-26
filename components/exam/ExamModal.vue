@@ -277,7 +277,7 @@ const loadExam = async () => {
     }
 
     // 如果有被驳回的记录，加载之前的答案允许补充
-    if (res.data.existing_record?.status === 'rejected') {
+    if (res.data.existing_record?.status === 5) {
       exam.value = res.data.exam
       questions.value = res.data.questions
 

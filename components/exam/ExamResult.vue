@@ -18,7 +18,7 @@
         <p class="text-sm" :class="isPassed ? 'text-green-600' : 'text-red-500'">
           {{ isPassed ? '恭喜通过！' : '未达到及格线' }}
         </p>
-        <p v-if="result?.status === 'pending_review'" class="text-xs text-orange-500 mt-2">
+        <p v-if="result?.status === 3" class="text-xs text-orange-500 mt-2">
           主观题待导师批改
         </p>
       </div>

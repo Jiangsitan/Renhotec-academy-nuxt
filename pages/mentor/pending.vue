@@ -1,43 +1,119 @@
 <template>
   <div>
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">待批改队列</h1>
-      <p class="text-sm text-gray-500 mt-1">学员提交的主观题待您批改</p>
+      <h1 class="text-2xl font-bold text-gray-900">审批管理</h1>
+      <p class="text-sm text-gray-500 mt-1">管理学员提交的答卷批改</p>
     </div>
 
-    <div v-if="loading" class="text-center py-12 text-gray-400">加载中...</div>
-
-    <div v-else-if="records.length === 0" class="text-center py-12">
-      <div class="text-4xl mb-3">✅</div>
-      <div class="text-gray-500">暂无待批改答卷</div>
-    </div>
-
-    <div v-else class="space-y-4">
-      <div
-        v-for="record in records"
-        :key="record.id"
-        class="bg-white rounded-xl border border-gray-200 p-5"
+    <!-- Tab 切换 -->
+    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+      <button
+        @click="activeTab = 'pending'"
+        class="px-5 py-2 rounded-lg text-sm font-medium transition-all"
+        :class="activeTab === 'pending' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
       >
-        <div class="flex items-start justify-between mb-3">
-          <div>
-            <h3 class="font-semibold text-gray-900">{{ record.exam?.title }}</h3>
-            <p class="text-sm text-gray-500 mt-1">学员: {{ record.user?.name }} ({{ record.user?.employee_no }})</p>
-          </div>
-          <span class="text-sm text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">待批改</span>
-        </div>
+        待审批
+        <span v-if="pendingRecords.length > 0" class="ml-1.5 bg-primary-100 text-primary-700 text-xs px-1.5 py-0.5 rounded-full">
+          {{ pendingRecords.length }}
+        </span>
+      </button>
+      <button
+        @click="activeTab = 'reviewed'"
+        class="px-5 py-2 rounded-lg text-sm font-medium transition-all"
+        :class="activeTab === 'reviewed' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+      >
+        已审批
+      </button>
+    </div>
 
-        <div class="text-sm text-gray-500 mb-4">
-          提交时间: {{ formatDate(record.submitted_at) }}
-          · 客观题得分: {{ formatScore(record.objective_score) }} 分
-          <span class="text-xs text-gray-400">（单选/多选/判断）</span>
-        </div>
+    <!-- 待审批 Tab -->
+    <div v-if="activeTab === 'pending'">
+      <div v-if="pendingLoading" class="text-center py-12 text-gray-400">加载中...</div>
 
-        <button
-          @click="openReview(record)"
-          class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700"
+      <div v-else-if="pendingRecords.length === 0" class="text-center py-12">
+        <div class="text-4xl mb-3">✅</div>
+        <div class="text-gray-500">暂无待批改答卷</div>
+      </div>
+
+      <div v-else class="space-y-4">
+        <div
+          v-for="record in pendingRecords"
+          :key="record.id"
+          class="bg-white rounded-xl border border-gray-200 p-5"
         >
-          开始批改
-        </button>
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-gray-900">{{ record.exam?.title }}</h3>
+              <p class="text-sm text-gray-500 mt-1">学员: {{ record.user?.name }} ({{ record.user?.employee_no }})</p>
+            </div>
+            <span class="text-sm text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">待批改</span>
+          </div>
+
+          <div class="text-sm text-gray-500 mb-4">
+            提交时间: {{ formatDate(record.submitted_at) }}
+            · 客观题得分: {{ formatScore(record.objective_score) }} 分
+            <span class="text-xs text-gray-400">（单选/多选/判断）</span>
+          </div>
+
+          <button
+            @click="openReview(record)"
+            class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700"
+          >
+            开始批改
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 已审批 Tab -->
+    <div v-if="activeTab === 'reviewed'">
+      <div v-if="reviewedLoading" class="text-center py-12 text-gray-400">加载中...</div>
+
+      <div v-else-if="reviewedRecords.length === 0" class="text-center py-12">
+        <div class="text-4xl mb-3">📋</div>
+        <div class="text-gray-500">暂无已审批记录</div>
+      </div>
+
+      <div v-else class="space-y-4">
+        <div
+          v-for="record in reviewedRecords"
+          :key="record.id"
+          class="bg-white rounded-xl border border-gray-200 p-5"
+        >
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-semibold text-gray-900">{{ record.exam?.title }}</h3>
+              <p class="text-sm text-gray-500 mt-1">学员: {{ record.user?.name }} ({{ record.user?.employee_no }})</p>
+            </div>
+            <span
+              class="text-sm px-2 py-0.5 rounded-full"
+              :class="record.status === 5 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'"
+            >
+              {{ record.status === 5 ? '已驳回' : '已通过' }}
+            </span>
+          </div>
+
+          <div class="text-sm text-gray-500 mb-3">
+            批改时间: {{ formatDate(record.graded_at) }}
+            · 总分: <span class="font-medium" :class="getScoreColor(record)">{{ formatScore(record.total_score) }} 分</span>
+          </div>
+
+          <div v-if="record.mentor_comment" class="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+            <span class="font-medium">评语：</span>{{ record.mentor_comment }}
+          </div>
+
+          <button
+            @click="viewDetail(record)"
+            class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+          >
+            查看详情
+          </button>
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="reviewedTotal > reviewedPerPage" class="flex justify-end mt-4">
+        <UPagination v-model="reviewedPage" :total="reviewedTotal" :page-count="reviewedPerPage" @update:model-value="loadReviewedRecords" />
       </div>
     </div>
 
@@ -155,8 +231,20 @@ definePageMeta({ middleware: 'auth' })
 const api = useApi()
 const toast = useToast()
 
-const records = ref<any[]>([])
-const loading = ref(true)
+const activeTab = ref<'pending' | 'reviewed'>('pending')
+
+// 待审批
+const pendingRecords = ref<any[]>([])
+const pendingLoading = ref(true)
+
+// 已审批
+const reviewedRecords = ref<any[]>([])
+const reviewedLoading = ref(true)
+const reviewedPage = ref(1)
+const reviewedTotal = ref(0)
+const reviewedPerPage = 15
+
+// 批改弹窗
 const showModal = ref(false)
 const reviewingRecord = ref<any>(null)
 const subjectiveAnswers = ref<any[]>([])
@@ -176,17 +264,34 @@ const formatDate = (dateStr: string) => {
   })
 }
 
+const getScoreColor = (record: any) => {
+  if (record.exam?.passing_score && record.total_score != null) {
+    return record.total_score >= record.exam.passing_score ? 'text-green-600' : 'text-red-500'
+  }
+  return 'text-gray-700'
+}
+
 // 判断是否所有题目都已自动评分
 const isAllAutoGraded = computed(() => {
   return subjectiveAnswers.value.length > 0 && subjectiveAnswers.value.every((a: any) => a.auto_graded)
 })
 
-const loadRecords = async () => {
+const loadPendingRecords = async () => {
   try {
     const res = await api.get<any>('/mentor/pending-reviews')
-    records.value = res.data.data
+    pendingRecords.value = res.data.data
   } catch {}
-  loading.value = false
+  pendingLoading.value = false
+}
+
+const loadReviewedRecords = async () => {
+  reviewedLoading.value = true
+  try {
+    const res = await api.get<any>('/mentor/reviewed-records', { page: reviewedPage.value, per_page: reviewedPerPage })
+    reviewedRecords.value = res.data.data
+    reviewedTotal.value = res.data.total
+  } catch {}
+  reviewedLoading.value = false
 }
 
 const openReview = async (record: any) => {
@@ -212,6 +317,10 @@ const openReview = async (record: any) => {
   } catch {}
 
   showModal.value = true
+}
+
+const viewDetail = (record: any) => {
+  window.open(`/exam/result/${record.id}`, '_blank')
 }
 
 const getQuestionContent = (questionId: number) => {
@@ -269,21 +378,6 @@ const renderHtml = (content: string, base: string) => {
   html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
   html = html.replace(/\n/g, '<br>')
   return html
-}
-
-// 渲染填空题内容（去除填空标记，只保留图片和文字）
-const renderFillBlankContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const cleaned = content.replace(/（\s*）/g, '')
-  return renderHtml(cleaned, base)
-}
-
-// 获取填空数量
-const getBlankCount = (content: string) => {
-  if (!content) return 0
-  const matches = content.match(/（\s*）/g)
-  return matches ? matches.length : 0
 }
 
 // 解析填空题内容为内联片段（图片/空位/文字）
@@ -364,7 +458,7 @@ const quickApprove = async () => {
       action: 'approve',
     })
     showModal.value = false
-    await loadRecords()
+    await loadPendingRecords()
     toast.add({ title: '审核完成', color: 'green' })
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '审核失败', color: 'red' })
@@ -383,7 +477,7 @@ const submitReview = async () => {
       action: 'approve',
     })
     showModal.value = false
-    await loadRecords()
+    await loadPendingRecords()
     toast.add({ title: '批改完成', color: 'green' })
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '批改失败', color: 'red' })
@@ -407,7 +501,7 @@ const handleReject = async () => {
       action: 'reject',
     })
     showModal.value = false
-    await loadRecords()
+    await loadPendingRecords()
     toast.add({ title: '已驳回，学生将收到通知', color: 'green' })
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '驳回失败', color: 'red' })
@@ -416,5 +510,8 @@ const handleReject = async () => {
   }
 }
 
-onMounted(loadRecords)
+onMounted(() => {
+  loadPendingRecords()
+  loadReviewedRecords()
+})
 </script>

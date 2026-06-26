@@ -20,14 +20,14 @@
           <span v-if="record.exam?.passing_score">及格线: {{ formatScore(record.exam.passing_score) }} 分</span>
         </div>
         <div class="mt-2">
-          <UBadge v-if="record.status === 'pending_review'" label="待批改" color="orange" variant="subtle" />
-          <UBadge v-else-if="record.status === 'rejected'" label="已驳回" color="red" variant="subtle" />
+          <UBadge v-if="record.status === 3" label="待批改" color="orange" variant="subtle" />
+          <UBadge v-else-if="record.status === 5" label="已驳回" color="red" variant="subtle" />
           <UBadge v-else-if="isPassed" label="通过" color="green" variant="subtle" />
           <UBadge v-else label="未通过" color="red" variant="subtle" />
         </div>
         
         <!-- 驳回状态提示 -->
-        <div v-if="record.status === 'rejected'" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
+        <div v-if="record.status === 5" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
           <div class="flex items-center gap-2 mb-2">
             <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-600" />
             <span class="text-sm font-medium text-red-700">试卷已驳回</span>
@@ -240,7 +240,7 @@ const isPassed = computed(() => {
 const isFailed = computed(() => {
   if (!record.value) return false
   // 已批改且未通过
-  return (record.value.status === 'graded' || record.value.status === 'auto_graded')
+  return (record.value.status === 4 || record.value.status === 2)
     && record.value.total_score != null
     && record.value.exam?.passing_score
     && record.value.total_score < record.value.exam.passing_score

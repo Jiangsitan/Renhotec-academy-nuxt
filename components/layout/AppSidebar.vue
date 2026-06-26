@@ -75,7 +75,7 @@ const menuItems = computed(() => {
     { path: '/my-exams', label: '我的考试', icon: 'i-heroicons-document-check' },
   ]
   if (authStore.user?.role === 'mentor' || authStore.user?.role === 'admin') {
-    items.push({ path: '/mentor/pending', label: '待批改', icon: 'i-heroicons-pencil-square' })
+    items.push({ path: '/mentor/pending', label: '审批管理', icon: 'i-heroicons-pencil-square' })
   }
   return items
 })
