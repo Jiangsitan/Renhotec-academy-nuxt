@@ -2,7 +2,6 @@
   <div>
     <div class="flex items-center gap-3 mb-4">
       <div class="flex-1" />
-      <UButton icon="i-heroicons-bars-arrow-up" label="排序" color="gray" @click="openSortModal" />
       <UButton icon="i-heroicons-plus" label="添加分类" @click="openModal()" />
     </div>
 
@@ -21,6 +20,7 @@
         <template #actions-data="{ row }">
           <div class="flex items-center gap-1">
             <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" @click="openModal(row)" />
+            <UButton v-if="!row.parent_id && row.children_count > 0" color="gray" variant="ghost" icon="i-heroicons-bars-arrow-up" size="xs" label="排序" @click="openSortModal(row)" />
             <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDelete(row)" />
           </div>
         </template>
@@ -57,72 +57,33 @@
     <UModal v-model="showSortModal" :prevent-close="sortSaving">
       <UCard class="max-w-xl">
         <template #header>
-          <h3 class="text-base font-semibold">
-            <template v-if="sortView === 'parent'">一级分类排序</template>
-            <template v-else>
-              <span class="cursor-pointer text-primary-600 hover:underline" @click="sortView = 'parent'">一级分类排序</span>
-              <span class="text-gray-400 mx-1">/</span>
-              {{ sortParentName }}
-            </template>
-          </h3>
+          <h3 class="text-base font-semibold">子分类排序 — {{ sortParentName }}</h3>
         </template>
-        <p v-if="sortView === 'parent'" class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整一级分类顺序，点击"子分类"可排序子分类</p>
-        <p v-else class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整子分类顺序</p>
+        <p class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整子分类顺序，排序结果将在用户端生效</p>
 
-        <!-- 一级分类排序视图 -->
-        <template v-if="sortView === 'parent'">
-          <div v-if="sortItems.length === 0" class="text-center py-8 text-sm text-gray-400">暂无一级分类</div>
-          <div v-else class="space-y-1">
-            <div
-              v-for="(item, idx) in sortItems"
-              :key="item.id"
-              :draggable="true"
-              @dragstart="onSortDragStart(idx)"
-              @dragover.prevent="onSortDragOver(idx)"
-              @dragend="onSortDragEnd"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-default"
-              :class="sortDragOverIdx === idx ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-            >
-              <UIcon name="i-heroicons-bars-3" class="w-5 h-5 text-gray-400 cursor-grab shrink-0" />
-              <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                :class="idx < 3 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'"
-              >{{ idx + 1 }}</span>
-              <span class="flex-1 text-sm truncate">{{ item.name }}</span>
-              <div class="flex items-center gap-0.5 shrink-0">
-                <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveSortItem(idx, -1)" />
-                <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === sortItems.length - 1" @click="moveSortItem(idx, 1)" />
-                <UButton v-if="item.children_count > 0" color="primary" variant="ghost" size="xs" label="子分类" @click="openChildSort(item)" />
-              </div>
+        <div v-if="sortItems.length === 0" class="text-center py-8 text-sm text-gray-400">该分类暂无子分类</div>
+        <div v-else class="space-y-1">
+          <div
+            v-for="(item, idx) in sortItems"
+            :key="item.id"
+            :draggable="true"
+            @dragstart="onSortDragStart(idx)"
+            @dragover.prevent="onSortDragOver(idx)"
+            @dragend="onSortDragEnd"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-default"
+            :class="sortDragOverIdx === idx ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
+          >
+            <UIcon name="i-heroicons-bars-3" class="w-5 h-5 text-gray-400 cursor-grab shrink-0" />
+            <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+              :class="idx < 3 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'"
+            >{{ idx + 1 }}</span>
+            <span class="flex-1 text-sm truncate">{{ item.name }}</span>
+            <div class="flex items-center gap-0.5 shrink-0">
+              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveSortItem(idx, -1)" />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === sortItems.length - 1" @click="moveSortItem(idx, 1)" />
             </div>
           </div>
-        </template>
-
-        <!-- 子分类排序视图 -->
-        <template v-else>
-          <div v-if="sortItems.length === 0" class="text-center py-8 text-sm text-gray-400">该分类暂无子分类</div>
-          <div v-else class="space-y-1">
-            <div
-              v-for="(item, idx) in sortItems"
-              :key="item.id"
-              :draggable="true"
-              @dragstart="onSortDragStart(idx)"
-              @dragover.prevent="onSortDragOver(idx)"
-              @dragend="onSortDragEnd"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-default"
-              :class="sortDragOverIdx === idx ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
-            >
-              <UIcon name="i-heroicons-bars-3" class="w-5 h-5 text-gray-400 cursor-grab shrink-0" />
-              <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                :class="idx < 3 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'"
-              >{{ idx + 1 }}</span>
-              <span class="flex-1 text-sm truncate">{{ item.name }}</span>
-              <div class="flex items-center gap-0.5 shrink-0">
-                <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveSortItem(idx, -1)" />
-                <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === sortItems.length - 1" @click="moveSortItem(idx, 1)" />
-              </div>
-            </div>
-          </div>
-        </template>
+        </div>
 
         <template #footer>
           <div class="flex justify-end gap-3">
@@ -153,7 +114,6 @@ const form = reactive({ name: '', parent_id: '', sort_order: 0 })
 // 排序弹窗状态
 const showSortModal = ref(false)
 const sortSaving = ref(false)
-const sortView = ref<'parent' | 'child'>('parent')
 const sortParentId = ref<number | null>(null)
 const sortParentName = ref('')
 const sortItems = ref<any[]>([])
@@ -235,27 +195,9 @@ const handleDelete = async (cat: any) => {
 
 // ==================== 排序逻辑 ====================
 
-const openSortModal = () => {
-  sortView.value = 'parent'
-  sortParentId.value = null
-  sortParentName.value = ''
-  // 只取一级分类
-  sortItems.value = categories.value.filter(c => !c.parent_id).map(c => ({
-    id: c.id,
-    name: c.name,
-    sort_order: c.sort_order,
-    children_count: c.children_count ?? 0,
-  }))
-  sortDragIdx.value = null
-  sortDragOverIdx.value = null
-  showSortModal.value = true
-}
-
-const openChildSort = (parent: any) => {
-  sortView.value = 'child'
+const openSortModal = (parent: any) => {
   sortParentId.value = parent.id
   sortParentName.value = parent.name
-  // 从已加载的 categories 中取子分类
   const parentCat = categories.value.find(c => c.id === parent.id)
   sortItems.value = (parentCat?.children || []).map((c: any) => ({
     id: c.id,
@@ -264,11 +206,11 @@ const openChildSort = (parent: any) => {
   }))
   sortDragIdx.value = null
   sortDragOverIdx.value = null
+  showSortModal.value = true
 }
 
 const closeSortModal = () => {
   showSortModal.value = false
-  sortView.value = 'parent'
   sortParentId.value = null
   sortParentName.value = ''
   sortItems.value = []
