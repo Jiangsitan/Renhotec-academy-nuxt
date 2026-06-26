@@ -270,8 +270,8 @@ const departmentOptions = ref<any[]>([{ label: '全部部门', value: '' }])
 const statusOptions = [
   { label: '全部', value: '' },
   { label: '待批改', value: '3' },
-  { label: '已批改', value: '4' },
-  { label: '已驳回', value: '5' },
+  { label: '已通过', value: 'passed' },
+  { label: '未通过', value: 'failed' },
 ]
 
 const cheatFilterOptions = [
@@ -301,12 +301,11 @@ const isAllAutoGraded = computed(() => {
 
 const getStatusLabel = (r: any) => {
   if (r.status === 3) return '待批改'
-  if (r.status === 5) return '已驳回'
-  if (r.status === 4 || r.status === 2) {
+  if (r.status === 4 || r.status === 2 || r.status === 5) {
     if (r.total_score !== null && r.exam?.passing_score) {
       return r.total_score >= r.exam.passing_score ? '已通过' : '未通过'
     }
-    return '已批改'
+    return '未通过'
   }
   return r.status
 }
