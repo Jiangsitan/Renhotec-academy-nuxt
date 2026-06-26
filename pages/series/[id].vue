@@ -7,8 +7,12 @@
     <!-- 面包屑 -->
     <nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
       <NuxtLink to="/" class="hover:text-primary-600">培训中心</NuxtLink>
+      <template v-if="series.category?.parent">
+        <UIcon name="i-heroicons-chevron-right" class="w-4 h-4" />
+        <NuxtLink to="/" class="hover:text-primary-600">{{ series.category.parent.name }}</NuxtLink>
+      </template>
       <UIcon name="i-heroicons-chevron-right" class="w-4 h-4" />
-      <span>{{ series.category?.name }}</span>
+      <NuxtLink to="/" class="hover:text-primary-600">{{ series.category?.name }}</NuxtLink>
       <UIcon name="i-heroicons-chevron-right" class="w-4 h-4" />
       <span class="text-gray-900 font-medium">{{ series.name }}</span>
     </nav>
