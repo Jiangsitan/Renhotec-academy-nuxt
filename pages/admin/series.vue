@@ -24,6 +24,7 @@
             <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" @click="openModal(row)" />
             <UButton v-if="row.status === 'draft'" color="green" variant="ghost" size="xs" label="发布" @click="updateStatus(row, 'published')" />
             <UButton v-if="row.status === 'published'" color="orange" variant="ghost" size="xs" label="取消发布" @click="updateStatus(row, 'draft')" />
+            <UButton color="gray" variant="ghost" icon="i-heroicons-bars-arrow-up" size="xs" label="排序" @click="openSortModal(row)" />
             <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDelete(row)" />
           </div>
         </template>
@@ -80,6 +81,44 @@
         </template>
       </UCard>
     </UModal>
+  <!-- 系列内课程排序弹窗 -->
+  <UModal v-model="showSortModal" :prevent-close="sortSaving">
+    <UCard class="max-w-xl">
+      <template #header>
+        <h3 class="text-base font-semibold">课程排序 — {{ sortSeries?.name }}</h3>
+      </template>
+      <p class="text-xs text-gray-500 mb-4">拖拽行或点击按钮调整课程顺序，排序结果将在用户端生效</p>
+      <div v-if="sortCourses.length === 0" class="text-center py-8 text-sm text-gray-400">该系列暂无课程</div>
+      <div v-else class="space-y-1">
+        <div
+          v-for="(course, idx) in sortCourses"
+          :key="course.id"
+          :draggable="true"
+          @dragstart="onSortDragStart(idx)"
+          @dragover.prevent="onSortDragOver(idx)"
+          @dragend="onSortDragEnd"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors cursor-default"
+          :class="sortDragOverIdx === idx ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'"
+        >
+          <UIcon name="i-heroicons-bars-3" class="w-5 h-5 text-gray-400 cursor-grab shrink-0" />
+          <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+            :class="idx < 3 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500'"
+          >{{ idx + 1 }}</span>
+          <span class="flex-1 text-sm truncate">{{ course.title }}</span>
+          <div class="flex items-center gap-0.5 shrink-0">
+            <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-up" size="xs" :disabled="idx === 0" @click="moveSortCourse(idx, -1)" />
+            <UButton color="gray" variant="ghost" icon="i-heroicons-chevron-down" size="xs" :disabled="idx === sortCourses.length - 1" @click="moveSortCourse(idx, 1)" />
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <UButton color="gray" label="取消" @click="closeSortModal" />
+          <UButton label="保存排序" :loading="sortSaving" :disabled="sortCourses.length === 0" @click="saveSortOrder" />
+        </div>
+      </template>
+    </UCard>
+  </UModal>
   </div>
 </template>
 
@@ -102,6 +141,73 @@ const categoryOptions = ref<any[]>([])
 const coverInput = ref<HTMLInputElement | null>(null)
 
 const form = reactive({ name: '', description: '', category_id: '', cover_image: '', sort_order: 0 })
+
+// 排序弹窗状态
+const showSortModal = ref(false)
+const sortSaving = ref(false)
+const sortSeries = ref<any>(null)
+const sortCourses = ref<any[]>([])
+const sortDragIdx = ref<number | null>(null)
+const sortDragOverIdx = ref<number | null>(null)
+
+const openSortModal = async (series: any) => {
+  sortSeries.value = series
+  sortCourses.value = []
+  showSortModal.value = true
+  try {
+    const res = await api.get<any>('/admin/courses', { series_id: series.id, per_page: 200 })
+    sortCourses.value = res.data.data
+  } catch {
+    sortCourses.value = []
+  }
+}
+
+const closeSortModal = () => {
+  showSortModal.value = false
+  sortSeries.value = null
+  sortCourses.value = []
+  sortDragIdx.value = null
+  sortDragOverIdx.value = null
+}
+
+const moveSortCourse = (idx: number, dir: number) => {
+  const target = idx + dir
+  if (target < 0 || target >= sortCourses.value.length) return
+  const arr = sortCourses.value
+  ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+}
+
+const onSortDragStart = (idx: number) => {
+  sortDragIdx.value = idx
+}
+
+const onSortDragOver = (idx: number) => {
+  sortDragOverIdx.value = idx
+}
+
+const onSortDragEnd = () => {
+  if (sortDragIdx.value !== null && sortDragOverIdx.value !== null && sortDragIdx.value !== sortDragOverIdx.value) {
+    const arr = sortCourses.value
+    const [moved] = arr.splice(sortDragIdx.value, 1)
+    arr.splice(sortDragOverIdx.value, 0, moved)
+  }
+  sortDragIdx.value = null
+  sortDragOverIdx.value = null
+}
+
+const saveSortOrder = async () => {
+  sortSaving.value = true
+  try {
+    const courseIds = sortCourses.value.map(c => c.id)
+    await api.put(`/admin/series/${sortSeries.value.id}/courses/reorder`, { course_ids: courseIds })
+    toast.add({ title: '排序已更新', color: 'green' })
+    closeSortModal()
+    await loadSeries(currentPage.value)
+  } catch (e: any) {
+    toast.add({ title: e?.data?.message || '保存失败', color: 'red' })
+  }
+  sortSaving.value = false
+}
 
 const columns = [
   { key: 'id', label: 'ID' },
