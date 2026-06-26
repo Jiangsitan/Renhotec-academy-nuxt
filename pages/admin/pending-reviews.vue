@@ -33,9 +33,6 @@
         <template #exam-data="{ row }">
           <span class="text-sm">{{ row.exam?.title }}</span>
         </template>
-        <template #objective_score-data="{ row }">
-          <span class="text-sm font-medium">{{ formatScore(row.objective_score) }} 分</span>
-        </template>
         <template #total_score-data="{ row }">
           <span class="text-sm font-medium" :class="getScoreClass(row)">
             {{ row.total_score != null ? formatScore(row.total_score) : '-' }}
@@ -283,7 +280,6 @@ const cheatFilterOptions = [
 const columns = [
   { key: 'user', label: '学员' },
   { key: 'exam', label: '考试' },
-  { key: 'objective_score', label: '客观题' },
   { key: 'total_score', label: '总分' },
   { key: 'status', label: '状态' },
   { key: 'cheat_count', label: '作弊' },
