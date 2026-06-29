@@ -19,13 +19,12 @@ const emit = defineEmits<{
   complete: [data: Record<string, any>]
 }>()
 
-const survey = computed(() => {
+function buildSurveyModel() {
   const elements: any[] = []
 
   props.questions.forEach((q, idx) => {
     const hasHtml = /<img[^>]+src="[^"]+"/.test(q.content || '')
 
-    // 如果题目包含 HTML（图片），先添加 HTML 展示元素
     if (hasHtml) {
       elements.push({
         type: 'html',
@@ -41,7 +40,7 @@ const survey = computed(() => {
     }
 
     switch (q.type) {
-      case 1: // 单选题
+      case 1:
         elements.push({
           ...base,
           type: 'radiogroup',
@@ -53,7 +52,7 @@ const survey = computed(() => {
         })
         break
 
-      case 2: // 多选题
+      case 2:
         elements.push({
           ...base,
           type: 'checkbox',
@@ -65,7 +64,7 @@ const survey = computed(() => {
         })
         break
 
-      case 3: // 判断题
+      case 3:
         elements.push({
           ...base,
           type: 'radiogroup',
@@ -77,7 +76,7 @@ const survey = computed(() => {
         })
         break
 
-      case 5: { // 填空题
+      case 5: {
         const blanks = (q.content || '').match(/（\s*）/g) || []
         elements.push({
           ...base,
@@ -91,7 +90,7 @@ const survey = computed(() => {
         break
       }
 
-      case 4: // 简答题
+      case 4:
         elements.push({
           ...base,
           type: 'comment',
@@ -121,11 +120,21 @@ const survey = computed(() => {
     }
   }
 
-  model.onComplete.add((sender: any) => {
-    emit('complete', sender.data)
-  })
-
   return model
+}
+
+const survey = ref<Model>(buildSurveyModel())
+
+watch(
+  () => [props.questions, props.readOnly],
+  () => {
+    survey.value = buildSurveyModel()
+  },
+  { deep: true }
+)
+
+survey.value.onComplete.add((sender: any) => {
+  emit('complete', sender.data)
 })
 </script>
 

@@ -143,9 +143,17 @@ const formatDate = (date: string) => {
   return d.toLocaleDateString('zh-CN')
 }
 
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   loadUnreadCount()
-  // 定期检查未读通知
-  setInterval(loadUnreadCount, 60000)
+  pollTimer = setInterval(loadUnreadCount, 60000)
+})
+
+onBeforeUnmount(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
 })
 </script>
