@@ -190,7 +190,7 @@ const parsedPreview = computed(() => {
   if (!form.content) return []
   const parts: any[] = []
   const regex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）/g
+  const blankRegex = /（\s*）|\(\s*\)/g
   let lastIndex = 0
   let blankIndex = 0
 

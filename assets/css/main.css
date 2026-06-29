@@ -53,17 +53,11 @@ body {
 /* 答案区域容器 */
 .fill-blank-answers-section {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #e5e7eb;
-}
-
-@media (max-width: 640px) {
-  .fill-blank-answers-section {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* 单个答案行 */

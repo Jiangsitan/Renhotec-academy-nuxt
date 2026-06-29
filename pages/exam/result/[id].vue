@@ -373,7 +373,7 @@ const parseFillBlankInline = (content: string) => {
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
   const parts: any[] = []
   const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）/g
+  const blankRegex = /（\s*）|\(\s*\)/g
 
   const allMatches: { type: string; index: number; length: number; value?: string }[] = []
 
@@ -432,7 +432,7 @@ const parseFillBlankInline = (content: string) => {
 const getBlankCount = (answer: any) => {
   const question = findQuestion(answer.question_id)
   if (!question?.content) return 0
-  const matches = question.content.match(/（\s*）/g)
+  const matches = question.content.match(/（\s*）|\(\s*\)/g)
   return matches ? matches.length : 0
 }
 
