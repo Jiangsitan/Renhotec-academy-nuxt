@@ -102,17 +102,6 @@
             <UIcon name="i-heroicons-chevron-right" class="w-5 h-5 text-gray-600" />
           </button>
         </Transition>
-
-        <!-- 移动端页码指示器 -->
-        <div class="md:hidden flex justify-center gap-1.5 pb-3">
-          <div
-            v-for="i in images.length"
-            :key="i"
-            data-testid="page-dot"
-            class="w-1.5 h-1.5 rounded-full transition-colors duration-200"
-            :class="i === currentPage ? 'bg-primary-500' : 'bg-gray-300'"
-          />
-        </div>
       </template>
     </div>
   </div>

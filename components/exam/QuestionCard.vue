@@ -48,24 +48,29 @@
       </label>
     </div>
 
-    <!-- 填空题：内联/块级混合渲染 -->
-    <div v-else-if="question.type === 5" class="fill-blank-inline">
-      <template v-for="(part, idx) in parsedContent" :key="idx">
-        <!-- 图片：块级显示 -->
-        <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
-        <!-- 空位输入框 -->
-        <input
-          v-else-if="part.type === 'blank'"
-          type="text"
-          :value="(modelValue || [])[part.index] || ''"
-          @input="updateFillBlank(part.index, ($event.target as HTMLInputElement).value)"
-          placeholder="请输入答案"
-          class="fill-blank-inline-input"
-          :class="{ block: part.display === 'block' }"
-        />
-        <!-- 文字：内联显示 -->
-        <span v-else v-html="part.html"></span>
-      </template>
+    <!-- 填空题：分离内容和答案 -->
+    <div v-else-if="question.type === 5" class="fill-blank-container">
+      <!-- 题目内容区域 -->
+      <div class="fill-blank-question-content text-gray-700">
+        <template v-for="(part, idx) in parsedContent" :key="idx">
+          <img v-if="part.type === 'image'" :src="part.src" />
+          <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
+          <span v-else v-html="part.html"></span>
+        </template>
+      </div>
+      <!-- 答案输入区域 -->
+      <div class="fill-blank-answers-section">
+        <div v-for="blank in blankCount" :key="blank" class="fill-blank-answer-row">
+          <span class="fill-blank-answer-label">第{{ blank }}空</span>
+          <input
+            type="text"
+            :value="(modelValue || [])[blank - 1] || ''"
+            @input="updateFillBlank(blank - 1, ($event.target as HTMLInputElement).value)"
+            placeholder="请输入答案"
+            class="fill-blank-input"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- 简答题 -->
@@ -174,9 +179,7 @@ const parsedContent = computed(() => {
       if (src.startsWith('/')) src = `${base}${src}`
       parts.push({ type: 'image', src })
     } else if (m.type === 'blank') {
-      const prevPart = parts[parts.length - 1]
-      const display = prevPart?.type === 'image' ? 'block' : 'inline'
-      parts.push({ type: 'blank', index: blankIndex, display })
+      parts.push({ type: 'blank', index: blankIndex })
       blankIndex++
     }
 
@@ -195,6 +198,11 @@ const parsedContent = computed(() => {
   }
 
   return parts
+})
+
+// 填空数量
+const blankCount = computed(() => {
+  return parsedContent.value.filter(p => p.type === 'blank').length
 })
 
 // 更新填空答案

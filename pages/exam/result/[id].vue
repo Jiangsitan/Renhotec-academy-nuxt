@@ -122,14 +122,22 @@
         </div>
 
         <!-- 题干：填空题渲染 -->
-        <div v-if="isFillBlank(answer.question_id)" class="text-sm text-gray-700 mb-3 fill-blank-inline">
-          <template v-for="(part, pIdx) in parseFillBlankInline(getQuestionContent(answer.question_id))" :key="pIdx">
-            <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
-            <span v-else-if="part.type === 'blank'" class="fill-blank-display" :class="{ block: part.display === 'block' }">
-              {{ (answer.answer || [])[part.index] || '未填写' }}
-            </span>
-            <span v-else v-html="part.html"></span>
-          </template>
+        <div v-if="isFillBlank(answer.question_id)" class="fill-blank-container">
+          <!-- 题目内容区域 -->
+          <div class="fill-blank-question-content text-sm text-gray-700 mb-3">
+            <template v-for="(part, pIdx) in parseFillBlankInline(getQuestionContent(answer.question_id))" :key="pIdx">
+              <img v-if="part.type === 'image'" :src="part.src" />
+              <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
+              <span v-else v-html="part.html"></span>
+            </template>
+          </div>
+          <!-- 答案显示区域 -->
+          <div class="fill-blank-answers-section">
+            <div v-for="blank in getBlankCount(answer)" :key="blank" class="fill-blank-answer-row">
+              <span class="fill-blank-answer-label">第{{ blank }}空</span>
+              <span class="fill-blank-display">{{ (answer.answer || [])[blank - 1] || '未填写' }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- 非填空题：普通显示 -->
@@ -406,9 +414,7 @@ const parseFillBlankInline = (content: string) => {
       if (src.startsWith('/')) src = `${base}${src}`
       parts.push({ type: 'image', src })
     } else if (m.type === 'blank') {
-      const prevPart = parts[parts.length - 1]
-      const display = prevPart?.type === 'image' ? 'block' : 'inline'
-      parts.push({ type: 'blank', index: blankIndex, display })
+      parts.push({ type: 'blank', index: blankIndex })
       blankIndex++
     }
 
@@ -427,6 +433,14 @@ const parseFillBlankInline = (content: string) => {
   }
 
   return parts
+}
+
+// 获取填空数量
+const getBlankCount = (answer: any) => {
+  const question = findQuestion(answer.question_id)
+  if (!question?.content) return 0
+  const matches = question.content.match(/（\s*）/g)
+  return matches ? matches.length : 0
 }
 
 // 格式化参考答案

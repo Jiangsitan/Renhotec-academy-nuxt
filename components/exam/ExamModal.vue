@@ -78,21 +78,29 @@
             />
           </div>
 
-          <!-- 填空题：内联/块级混合渲染 -->
-          <div v-else-if="question.type === 5" class="fill-blank-inline">
-            <template v-for="(part, idx) in parseFillBlankContent(question.content)" :key="idx">
-              <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
-              <input
-                v-else-if="part.type === 'blank'"
-                type="text"
-                :value="answers[question.id]?.[part.index] ?? ''"
-                @input="updateFillBlank(question.id, part.index, ($event.target as HTMLInputElement).value)"
-                placeholder="请输入答案"
-                class="fill-blank-inline-input"
-                :class="{ block: part.display === 'block' }"
-              />
-              <span v-else v-html="part.html"></span>
-            </template>
+          <!-- 填空题：分离内容和答案 -->
+          <div v-else-if="question.type === 5" class="fill-blank-container">
+            <!-- 题目内容区域 -->
+            <div class="fill-blank-question-content text-sm text-gray-700">
+              <template v-for="(part, idx) in parseFillBlankContent(question.content)" :key="idx">
+                <img v-if="part.type === 'image'" :src="part.src" />
+                <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
+                <span v-else v-html="part.html"></span>
+              </template>
+            </div>
+            <!-- 答案输入区域 -->
+            <div class="fill-blank-answers-section">
+              <div v-for="blank in getBlankCount(question.content)" :key="blank" class="fill-blank-answer-row">
+                <span class="fill-blank-answer-label">第{{ blank }}空</span>
+                <input
+                  type="text"
+                  :value="answers[question.id]?.[blank - 1] ?? ''"
+                  @input="updateFillBlank(question.id, blank - 1, ($event.target as HTMLInputElement).value)"
+                  placeholder="请输入答案"
+                  class="fill-blank-input"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -224,9 +232,7 @@ const parseFillBlankContent = (content: string) => {
       if (src.startsWith('/')) src = `${base}${src}`
       parts.push({ type: 'image', src })
     } else if (m.type === 'blank') {
-      const prevPart = parts[parts.length - 1]
-      const display = prevPart?.type === 'image' ? 'block' : 'inline'
-      parts.push({ type: 'blank', index: blankIndex, display })
+      parts.push({ type: 'blank', index: blankIndex })
       blankIndex++
     }
 
@@ -245,6 +251,13 @@ const parseFillBlankContent = (content: string) => {
   }
 
   return parts
+}
+
+// 获取填空数量
+const getBlankCount = (content: string) => {
+  if (!content) return 0
+  const matches = content.match(/（\s*）|\(\s*\)/g)
+  return matches ? matches.length : 0
 }
 
 // 更新填空答案

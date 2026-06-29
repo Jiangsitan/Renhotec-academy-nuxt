@@ -101,10 +101,13 @@ const loadRecords = async (page = 1) => {
   try {
     const res = await api.get<any>('/my-exam-records', { page, per_page: perPage })
     records.value = res.data.data
-    total.value = res.data.total
-    currentPage.value = res.data.current_page
-    totalPages.value = res.data.last_page
-  } catch (e) { console.error(e) }
+    total.value = res.data.meta?.total ?? 0
+    currentPage.value = res.data.meta?.current_page ?? 1
+    totalPages.value = res.data.meta?.last_page ?? 1
+  } catch (e: any) {
+    console.error(e)
+    records.value = []
+  }
   loading.value = false
 }
 
