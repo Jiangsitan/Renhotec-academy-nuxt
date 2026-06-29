@@ -124,6 +124,10 @@ const emit = defineEmits<{
 const api = useApi()
 const toast = useToast()
 
+// 防作弊开关
+const settingsStore = useSettingsStore()
+const isAntiCheatEnabled = computed(() => settingsStore.exam_anti_cheat_enabled === '1')
+
 // 防作弊监控
 const {
   isFullscreen, showWarning, warningMessage,
@@ -333,9 +337,11 @@ const loadExam = async () => {
     remaining.value = (exam.value?.time_limit || 10) * 60
     startTimer()
     
-    // 启动防作弊监控
-    await enterFullscreen()
-    startMonitoring()
+    // 启动防作弊监控（仅当启用时）
+    if (isAntiCheatEnabled.value) {
+      await enterFullscreen()
+      startMonitoring()
+    }
   } catch (e: any) {
     toast.add({ title: e?.data?.message || '加载考试失败', color: 'red' })
     isOpen.value = false
