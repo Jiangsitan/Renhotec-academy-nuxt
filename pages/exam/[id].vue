@@ -71,6 +71,7 @@ definePageMeta({ middleware: 'auth' })
 const route = useRoute()
 const api = useApi()
 const toast = useToast()
+const settingsStore = useSettingsStore()
 
 const examId = Number(route.params.id)
 const exam = ref<any>(null)
@@ -92,6 +93,9 @@ const {
   },
 })
 
+// 防作弊是否启用
+const isAntiCheatEnabled = computed(() => settingsStore.exam_anti_cheat_enabled === '1')
+
 const loadExam = async () => {
   try {
     const res = await api.get<any>(`/exams/${examId}`)
@@ -105,8 +109,8 @@ const loadExam = async () => {
       answers.value[q.id] = q.type === 2 ? [] : '' // 多选题初始化数组，其他初始化空字符串
     })
 
-    // 启动防作弊监控
-    if (canTake.value && !existingRecord.value) {
+    // 启动防作弊监控（仅当启用时）
+    if (canTake.value && !existingRecord.value && isAntiCheatEnabled.value) {
       await enterFullscreen()
       startMonitoring()
     }
@@ -128,8 +132,10 @@ const handleSubmit = async (force = false) => {
   }
 
   submitting.value = true
-  stopMonitoring()
-  exitFullscreen()
+  if (isAntiCheatEnabled.value) {
+    stopMonitoring()
+    exitFullscreen()
+  }
   try {
     const formattedAnswers = questions.value.map(q => ({
       question_id: q.id,

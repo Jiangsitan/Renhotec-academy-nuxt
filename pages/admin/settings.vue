@@ -54,6 +54,10 @@
             <UInput v-model="form.system_logo" placeholder="https://example.com/logo.png" />
           </div>
         </UFormGroup>
+
+        <UFormGroup label="考试防作弊" description="开启后，学员考试时将启用全屏模式和页面离开监控">
+          <USwitch v-model="form.exam_anti_cheat_enabled" true-value="1" false-value="0" />
+        </UFormGroup>
       </UForm>
 
       <template #footer>
@@ -81,6 +85,7 @@ const form = reactive({
   system_name: '',
   system_subtitle: '',
   system_logo: '',
+  exam_anti_cheat_enabled: '1',
 })
 
 // 将相对路径转为完整 URL
@@ -102,6 +107,7 @@ const loadSettings = async () => {
     form.system_name = res.data.system_name || ''
     form.system_subtitle = res.data.system_subtitle || ''
     form.system_logo = res.data.system_logo || ''
+    form.exam_anti_cheat_enabled = res.data.exam_anti_cheat_enabled || '1'
   } catch (e) {
     console.error('Failed to load settings:', e)
   }
@@ -157,12 +163,14 @@ const handleSave = async () => {
         { key: 'system_name', value: form.system_name },
         { key: 'system_subtitle', value: form.system_subtitle },
         { key: 'system_logo', value: form.system_logo },
+        { key: 'exam_anti_cheat_enabled', value: form.exam_anti_cheat_enabled },
       ],
     })
     settingsStore.updateSettings({
       system_name: form.system_name,
       system_subtitle: form.system_subtitle,
       system_logo: form.system_logo,
+      exam_anti_cheat_enabled: form.exam_anti_cheat_enabled,
     })
     toast.add({ title: '设置已保存', color: 'green' })
   } catch (e: any) {

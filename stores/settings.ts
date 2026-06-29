@@ -4,6 +4,7 @@ interface SettingsState {
   system_name: string
   system_subtitle: string
   system_logo: string
+  exam_anti_cheat_enabled: string
   loaded: boolean
 }
 
@@ -12,6 +13,7 @@ export const useSettingsStore = defineStore('settings', {
     system_name: 'Renhotec Academy',
     system_subtitle: '员工培训与考试系统',
     system_logo: '',
+    exam_anti_cheat_enabled: '1',
     loaded: false,
   }),
 
@@ -30,6 +32,7 @@ export const useSettingsStore = defineStore('settings', {
         if (res.data) {
           this.system_name = res.data.system_name || 'Renhotec Academy'
           this.system_subtitle = res.data.system_subtitle || '员工培训与考试系统'
+          this.exam_anti_cheat_enabled = res.data.exam_anti_cheat_enabled || '1'
           
           // Logo URL 处理
           const logo = res.data.system_logo || ''
@@ -51,6 +54,7 @@ export const useSettingsStore = defineStore('settings', {
       if (settings.system_name) this.system_name = settings.system_name
       if (settings.system_subtitle) this.system_subtitle = settings.system_subtitle
       if (settings.system_logo !== undefined) this.system_logo = settings.system_logo
+      if (settings.exam_anti_cheat_enabled !== undefined) this.exam_anti_cheat_enabled = settings.exam_anti_cheat_enabled
     },
   },
 })

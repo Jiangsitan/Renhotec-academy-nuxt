@@ -13,7 +13,7 @@
     <!-- 通知下拉列表 -->
     <div
       v-if="showDropdown"
-      class="fixed lg:absolute right-4 lg:right-0 top-16 lg:top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-[60]"
+      class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-[60]"
     >
       <div class="p-3 border-b border-gray-100 flex items-center justify-between">
         <h3 class="text-sm font-semibold">通知</h3>
