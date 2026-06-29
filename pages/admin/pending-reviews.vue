@@ -576,9 +576,10 @@ const renderFillBlankContent = (content: string) => {
 }
 
 // 获取填空数量
-const getBlankCount = (content: string) => {
-  if (!content) return 0
-  const matches = content.match(/（\s*）/g)
+const getBlankCount = (answer: any) => {
+  const question = findQuestion(answer.question_id)
+  if (!question?.content) return 0
+  const matches = question.content.match(/（\s*）/g)
   return matches ? matches.length : 0
 }
 
@@ -643,14 +644,6 @@ const parseFillBlankInline = (content: string) => {
   }
 
   return parts
-}
-
-// 获取填空数量
-const getBlankCount = (answer: any) => {
-  const question = findQuestion(answer.question_id)
-  if (!question?.content) return 0
-  const matches = question.content.match(/（\s*）/g)
-  return matches ? matches.length : 0
 }
 
 // 一键审核通过
