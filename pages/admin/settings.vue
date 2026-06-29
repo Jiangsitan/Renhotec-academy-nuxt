@@ -56,7 +56,10 @@
         </UFormGroup>
 
         <UFormGroup label="考试防作弊" description="开启后，学员考试时将启用全屏模式和页面离开监控">
-          <USwitch v-model="form.exam_anti_cheat_enabled" true-value="1" false-value="0" />
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" :checked="form.exam_anti_cheat_enabled === '1'" @change="form.exam_anti_cheat_enabled = $event.target.checked ? '1' : '0'" class="sr-only peer" />
+            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+          </label>
         </UFormGroup>
       </UForm>
 
