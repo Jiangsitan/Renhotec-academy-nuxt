@@ -275,13 +275,6 @@ const renderFillBlankContent = (content: string) => {
   return renderHtml(cleaned, base)
 }
 
-// 获取填空数量
-const getBlankCount = (content: string) => {
-  if (!content) return 0
-  const matches = content.match(/（\s*）/g)
-  return matches ? matches.length : 0
-}
-
 const loadExam = async () => {
   try {
     const res = await api.get<any>(`/exams/${props.examId}`)
