@@ -1,9 +1,0 @@
-{
-  "pid": 6372,
-  "startedAt": 1781172801213,
-  "command": "dev",
-  "cwd": "/Users/lucasjay/work_code/Renhotec Academy/academy_nuxt",
-  "port": 3000,
-  "hostname": "0.0.0.0",
-  "url": "http://0.0.0.0:3000"
-}

@@ -121,22 +121,22 @@
           </div>
         </div>
 
-        <!-- 题干：填空题渲染 -->
-        <div v-if="isFillBlank(answer.question_id)" class="fill-blank-container">
-          <!-- 题目内容区域 -->
-          <div class="fill-blank-question-content text-sm text-gray-700 mb-3">
-            <template v-for="(part, pIdx) in parseFillBlankInline(getQuestionContent(answer.question_id))" :key="pIdx">
+        <!-- 题干：填空题渲染（答案内联） -->
+        <div v-if="isFillBlank(answer.question_id)" class="fill-blank-container mb-3">
+          <div class="text-sm text-gray-700">
+            <template v-for="(part, pIdx) in parseFillBlankWithAnswers(
+              getQuestionContent(answer.question_id),
+              answer.answer || [],
+              parseCorrectAnswers(answer.question_id),
+              true
+            )" :key="pIdx">
               <img v-if="part.type === 'image'" :src="part.src" />
-              <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
+              <template v-else-if="part.type === 'blank'">
+                <span class="fill-blank-inline-student">{{ part.studentAnswer || '未填写' }}</span>
+                <span v-if="part.showReference && part.referenceAnswer" class="fill-blank-inline-ref">参考答案：{{ part.referenceAnswer }}</span>
+              </template>
               <span v-else v-html="part.html"></span>
             </template>
-          </div>
-          <!-- 答案显示区域 -->
-          <div class="fill-blank-answers-section">
-            <div v-for="blank in getBlankCount(answer)" :key="blank" class="fill-blank-answer-row">
-              <span class="fill-blank-answer-label">第{{ blank }}空</span>
-              <span class="fill-blank-display">{{ (answer.answer || [])[blank - 1] || '未填写' }}</span>
-            </div>
           </div>
         </div>
 
@@ -157,8 +157,8 @@
           </div>
         </div>
 
-        <!-- 你的答案 vs 正确答案 -->
-        <div class="flex flex-wrap gap-4 text-sm">
+        <!-- 你的答案 vs 正确答案（填空题除外，已内联显示） -->
+        <div v-if="!isFillBlank(answer.question_id)" class="flex flex-wrap gap-4 text-sm">
           <div>
             <span class="text-gray-500">你的答案：</span>
             <span :class="answer.is_correct ? 'text-green-600' : 'text-red-600 font-medium'">
@@ -171,8 +171,8 @@
           </div>
         </div>
 
-        <!-- 简答题和填空题参考答案（批改后显示） -->
-        <div v-if="(isShortAnswer(answer.question_id) || isFillBlank(answer.question_id)) && getCorrectAnswer(answer.question_id)" class="mt-2 p-2 bg-blue-50 rounded-lg">
+        <!-- 简答题参考答案（批改后显示） -->
+        <div v-if="isShortAnswer(answer.question_id) && getCorrectAnswer(answer.question_id)" class="mt-2 p-2 bg-blue-50 rounded-lg">
           <span class="text-xs text-gray-500">参考答案：</span>
           <span class="text-xs text-blue-600">{{ formatCorrectAnswer(answer.question_id) }}</span>
         </div>
@@ -426,6 +426,86 @@ const parseFillBlankInline = (content: string) => {
   }
 
   return parts
+}
+
+// 解析填空题：学生答案内嵌到括号内 + 参考答案紧跟括号后
+const parseFillBlankWithAnswers = (content: string, studentAnswers: string[], correctAnswers: string[], showReference: boolean) => {
+  if (!content) return []
+  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
+  const parts: any[] = []
+  const imgRegex = /<img[^>]+src="([^"]+)"/g
+  const blankRegex = /（\s*）|\(\s*\)/g
+
+  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
+
+  let match
+  while ((match = imgRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
+  }
+  while ((match = blankRegex.exec(content)) !== null) {
+    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
+  }
+
+  allMatches.sort((a, b) => a.index - b.index)
+
+  let lastIndex = 0
+  let blankIndex = 0
+
+  for (const m of allMatches) {
+    if (m.index > lastIndex) {
+      const text = content.slice(lastIndex, m.index)
+      if (text) {
+        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+        html = html.replace(/\n/g, '<br>')
+        parts.push({ type: 'text', html })
+      }
+    }
+
+    if (m.type === 'image') {
+      let src = m.value!
+      if (src.startsWith('/')) src = `${base}${src}`
+      parts.push({ type: 'image', src })
+    } else if (m.type === 'blank') {
+      parts.push({
+        type: 'blank',
+        index: blankIndex,
+        studentAnswer: studentAnswers[blankIndex] || '',
+        referenceAnswer: correctAnswers[blankIndex] || '',
+        showReference,
+      })
+      blankIndex++
+    }
+
+    lastIndex = m.index + m.length
+  }
+
+  if (lastIndex < content.length) {
+    const text = content.slice(lastIndex)
+    if (text) {
+      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
+      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
+      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
+      html = html.replace(/\n/g, '<br>')
+      parts.push({ type: 'text', html })
+    }
+  }
+
+  return parts
+}
+
+// 解析填空题参考答案为数组
+const parseCorrectAnswers = (questionId: number): string[] => {
+  const question = findQuestion(questionId)
+  if (!question?.correct_answer) return []
+  if (question.type === 5) {
+    try {
+      const arr = JSON.parse(question.correct_answer)
+      if (Array.isArray(arr)) return arr.map(String)
+    } catch {}
+  }
+  return [question.correct_answer]
 }
 
 // 获取填空数量

@@ -105,6 +105,28 @@ body {
   word-break: break-words;
 }
 
+/* 填空题内联学生答案（括号内） */
+.fill-blank-inline-student {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #1e40af;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+/* 填空题内联参考答案（紧跟括号后） */
+.fill-blank-inline-ref {
+  display: inline;
+  font-size: 12px;
+  color: #2563eb;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
 /* 预览标记样式（管理后台编辑器） */
 .fill-blank-preview {
   display: inline-block;
