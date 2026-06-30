@@ -6,6 +6,7 @@ interface SettingsState {
   system_logo: string
   exam_anti_cheat_enabled: string
   loaded: boolean
+  lastFetchTime: number
 }
 
 export const useSettingsStore = defineStore('settings', {
@@ -15,15 +16,17 @@ export const useSettingsStore = defineStore('settings', {
     system_logo: '',
     exam_anti_cheat_enabled: '1',
     loaded: false,
+    lastFetchTime: 0,
   }),
 
   actions: {
-    async fetchSettings() {
-      if (this.loaded) return
+    async fetchSettings(force = false) {
+      // 5分钟缓存，强制刷新时跳过
+      const now = Date.now()
+      if (!force && this.loaded && (now - this.lastFetchTime < 5 * 60 * 1000)) return
 
       try {
         const config = useRuntimeConfig()
-        // 动态拼接 API 基础 URL
         const baseUrl = config.public.apiBase ||
           (typeof window !== 'undefined'
             ? `${window.location.protocol}//${window.location.hostname}:9000/api`
@@ -32,18 +35,17 @@ export const useSettingsStore = defineStore('settings', {
         if (res.data) {
           this.system_name = res.data.system_name || 'Renhotec Academy'
           this.system_subtitle = res.data.system_subtitle || '员工培训与考试系统'
-          this.exam_anti_cheat_enabled = res.data.exam_anti_cheat_enabled || '1'
+          this.exam_anti_cheat_enabled = res.data.exam_anti_cheat_enabled ?? '1'
           
-          // Logo URL 处理
           const logo = res.data.system_logo || ''
           if (logo && !logo.startsWith('http')) {
-            // OSS 路径，拼接完整 URL
             this.system_logo = `https://rh-wh.oss-cn-shanghai.aliyuncs.com/${logo}`
           } else {
             this.system_logo = logo
           }
           
           this.loaded = true
+          this.lastFetchTime = now
         }
       } catch (e) {
         console.error('Failed to load settings:', e)

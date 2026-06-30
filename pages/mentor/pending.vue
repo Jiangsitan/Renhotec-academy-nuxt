@@ -157,7 +157,7 @@
           </template>
 
           <!-- 显示参考答案（非填空题，填空题已内联） -->
-          <div v-if="!isFillBlank(answer.question_id) && getCorrectAnswer(answer.question_id)" class="text-xs text-blue-600 bg-blue-50 p-2 rounded mb-3">
+          <div v-if="!isFillBlank(answer.question_id) && getCorrectAnswer(answer.question_id)" class="reference-highlight">
             <span class="font-medium">参考答案：</span>{{ getCorrectAnswer(answer.question_id) }}
           </div>
 

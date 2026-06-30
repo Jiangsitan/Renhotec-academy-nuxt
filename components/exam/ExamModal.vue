@@ -277,6 +277,8 @@ const renderFillBlankContent = (content: string) => {
 
 const loadExam = async () => {
   try {
+    // 强制刷新设置，确保拿到最新的防作弊开关状态
+    await settingsStore.fetchSettings(true)
     const res = await api.get<any>(`/exams/${props.examId}`)
 
     // 检查是否可以参加考试

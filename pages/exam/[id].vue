@@ -93,11 +93,13 @@ const {
   },
 })
 
-// 防作弊是否启用
+// 防作弊是否启用（每次进入考试页强制刷新设置）
 const isAntiCheatEnabled = computed(() => settingsStore.exam_anti_cheat_enabled === '1')
 
 const loadExam = async () => {
   try {
+    // 强制刷新设置，确保拿到最新的防作弊开关状态
+    await settingsStore.fetchSettings(true)
     const res = await api.get<any>(`/exams/${examId}`)
     exam.value = res.data.exam
     questions.value = res.data.questions
