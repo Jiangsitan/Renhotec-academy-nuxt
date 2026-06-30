@@ -128,7 +128,7 @@
               getQuestionContent(answer.question_id),
               answer.answer || [],
               parseCorrectAnswers(answer.question_id),
-              isWrong(answer)
+              true
             )" :key="pIdx">
               <img v-if="part.type === 'image'" :src="part.src" />
               <template v-else-if="part.type === 'blank'">
@@ -165,7 +165,7 @@
               {{ formatAnswer(answer.answer) }}
             </span>
           </div>
-          <div v-if="isWrong(answer)">
+          <div>
             <span class="text-gray-500">正确答案：</span>
             <span class="text-green-600 font-medium">{{ getCorrectAnswer(answer.question_id) }}</span>
           </div>
