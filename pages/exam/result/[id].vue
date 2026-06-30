@@ -128,7 +128,7 @@
               getQuestionContent(answer.question_id),
               answer.answer || [],
               parseCorrectAnswers(answer.question_id),
-              true
+              answer.is_correct === false
             )" :key="pIdx">
               <img v-if="part.type === 'image'" :src="part.src" />
               <template v-else-if="part.type === 'blank'">
