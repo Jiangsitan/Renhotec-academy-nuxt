@@ -149,7 +149,7 @@
                 参考答案：{{ q.correct_answer }}
               </div>
               <div v-if="q.type === 5 && q.correct_answer" class="text-xs text-gray-500 mt-1">
-                正确答案：{{ formatFillBlankAnswer(q.correct_answer) }}
+                参考答案：{{ formatFillBlankAnswer(q.correct_answer) }}
               </div>
             </div>
           </div>

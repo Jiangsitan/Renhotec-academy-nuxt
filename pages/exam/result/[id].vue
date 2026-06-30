@@ -157,8 +157,8 @@
           </div>
         </div>
 
-        <!-- 你的答案 vs 正确答案（填空题除外，已内联显示） -->
-        <div v-if="!isFillBlank(answer.question_id)" class="flex flex-wrap gap-4 text-sm">
+        <!-- 你的答案 vs 正确答案（填空题除外，已内联显示；简答题除外，用参考答案） -->
+        <div v-if="!isFillBlank(answer.question_id) && !isShortAnswer(answer.question_id)" class="flex flex-wrap gap-4 text-sm">
           <div>
             <span class="text-gray-500">你的答案：</span>
             <span :class="isCorrect(answer) ? 'text-green-600' : 'text-red-600 font-medium'">
@@ -171,10 +171,18 @@
           </div>
         </div>
 
-        <!-- 简答题参考答案（批改后显示） -->
-        <div v-if="isShortAnswer(answer.question_id) && getCorrectAnswer(answer.question_id)" class="mt-2 p-2 bg-blue-50 rounded-lg">
-          <span class="text-xs text-gray-500">参考答案：</span>
-          <span class="text-xs text-blue-600">{{ formatCorrectAnswer(answer.question_id) }}</span>
+        <!-- 简答题：你的答案 + 参考答案 -->
+        <div v-if="isShortAnswer(answer.question_id)" class="text-sm">
+          <div class="mb-2">
+            <span class="text-gray-500">你的答案：</span>
+            <span :class="isCorrect(answer) ? 'text-green-600' : 'text-red-600 font-medium'">
+              {{ formatAnswer(answer.answer) }}
+            </span>
+          </div>
+          <div v-if="getCorrectAnswer(answer.question_id)" class="p-2 bg-blue-50 rounded-lg">
+            <span class="text-xs text-gray-500">参考答案：</span>
+            <span class="text-xs text-blue-600">{{ formatCorrectAnswer(answer.question_id) }}</span>
+          </div>
         </div>
 
         <!-- 错题复习提示：关联课程链接 -->
