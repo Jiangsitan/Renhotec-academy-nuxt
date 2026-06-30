@@ -36,75 +36,6 @@ body {
   margin: 8px 0;
 }
 
-/* 题目内容区域（文字+图片） */
-.fill-blank-question-content {
-  margin-bottom: 16px;
-}
-
-.fill-blank-question-content span {
-  display: inline;
-}
-
-.fill-blank-question-content img {
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* 答案区域容器 */
-.fill-blank-answers-section {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* 单个答案行 */
-.fill-blank-answer-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fill-blank-answer-label {
-  font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
-  white-space: nowrap;
-  min-width: 48px;
-}
-
-/* 输入框样式（考试作答） */
-.fill-blank-input {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.fill-blank-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-/* 答案显示样式（结果/批改页面） */
-.fill-blank-display {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 12px;
-  background-color: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  text-align: left;
-  word-break: break-words;
-}
-
 /* 填空题内联学生答案（括号内） */
 .fill-blank-inline-student {
   display: inline-block;
@@ -146,19 +77,6 @@ body {
 /* 答案与参考答案之间的间距 */
 .answer-section + .reference-highlight {
   margin-top: 14px;
-}
-
-/* 预览标记样式（管理后台编辑器） */
-.fill-blank-preview {
-  display: inline-block;
-  min-width: 60px;
-  padding: 4px 10px;
-  background-color: #dbeafe;
-  border: 1px solid #93c5fd;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #1d4ed8;
-  text-align: center;
 }
 
 .line-clamp-3 {

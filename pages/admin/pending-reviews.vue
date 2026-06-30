@@ -155,23 +155,15 @@
             <UBadge v-else label="需人工评分" color="orange" size="xs" />
           </div>
 
-          <!-- 填空题：答案内联显示 -->
-          <div v-if="isFillBlank(answer.question_id)" class="fill-blank-container mb-3">
-            <div class="text-sm text-gray-600">
-              <template v-for="(part, pIdx) in parseFillBlankWithAnswers(
-                getQuestionContent(answer.question_id),
-                answer.answer || [],
-                parseCorrectAnswers(answer.question_id),
-                true
-              )" :key="pIdx">
-                <img v-if="part.type === 'image'" :src="part.src" />
-                <template v-else-if="part.type === 'blank'">
-                  <span class="fill-blank-inline-student">{{ part.studentAnswer || '未填写' }}</span>
-                  <span v-if="part.showReference && part.referenceAnswer" class="fill-blank-inline-ref">参考答案：{{ part.referenceAnswer }}</span>
-                </template>
-                <span v-else v-html="part.html"></span>
-              </template>
-            </div>
+          <!-- 填空题：内联括号+自适应宽度 -->
+          <div v-if="isFillBlank(answer.question_id)" class="mb-3">
+            <ExamFillBlankInput
+              :content="getQuestionContent(answer.question_id)"
+              :answers="answer.answer || []"
+              :reference-answers="parseCorrectAnswers(answer.question_id)"
+              :editable="false"
+              :show-reference="true"
+            />
           </div>
 
           <!-- 非填空题：普通显示 -->
@@ -548,174 +540,15 @@ const renderHtml = (content: string, base: string) => {
   return html
 }
 
-const parseFillBlankContent = (content: string) => {
-  const parts: { type: 'text' | 'blank'; text?: string; blankIndex?: number }[] = []
-  const regex = /（\s*）/g
-  let lastIndex = 0
-  let blankIndex = 0
-  let match
 
-  while ((match = regex.exec(content)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ type: 'text', text: content.slice(lastIndex, match.index) })
-    }
-    parts.push({ type: 'blank', blankIndex })
-    blankIndex++
-    lastIndex = match.index + match[0].length
-  }
 
-  if (lastIndex < content.length) {
-    parts.push({ type: 'text', text: content.slice(lastIndex) })
-  }
 
-  return parts
-}
 
-// 渲染填空题内容（去除填空标记，只保留图片和文字）
-const renderFillBlankContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const cleaned = content.replace(/（\s*）/g, '')
-  return renderHtml(cleaned, base)
-}
 
-// 获取填空数量
-const getBlankCount = (answer: any) => {
-  const question = findQuestion(answer.question_id)
-  if (!question?.content) return 0
-  const matches = question.content.match(/（\s*）|\(\s*\)/g)
-  return matches ? matches.length : 0
-}
 
-// 解析填空题内容为内联片段（图片/空位/文字）
-const parseFillBlankInline = (content: string) => {
-  if (!content) return []
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const parts: any[] = []
-  const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）|\(\s*\)/g
 
-  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
 
-  let match
-  while ((match = imgRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
-  }
-  while ((match = blankRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
-  }
 
-  allMatches.sort((a, b) => a.index - b.index)
-
-  let lastIndex = 0
-  let blankIndex = 0
-
-  for (const m of allMatches) {
-    if (m.index > lastIndex) {
-      const text = content.slice(lastIndex, m.index)
-      if (text) {
-        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-        html = html.replace(/\n/g, '<br>')
-        parts.push({ type: 'text', html })
-      }
-    }
-
-    if (m.type === 'image') {
-      let src = m.value!
-      if (src.startsWith('/')) src = `${base}${src}`
-      parts.push({ type: 'image', src })
-    } else if (m.type === 'blank') {
-      const prevPart = parts[parts.length - 1]
-      const display = prevPart?.type === 'image' ? 'block' : 'inline'
-      parts.push({ type: 'blank', index: blankIndex, display })
-      blankIndex++
-    }
-
-    lastIndex = m.index + m.length
-  }
-
-  if (lastIndex < content.length) {
-    const text = content.slice(lastIndex)
-    if (text) {
-      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-      html = html.replace(/\n/g, '<br>')
-      parts.push({ type: 'text', html })
-    }
-  }
-
-  return parts
-}
-
-// 解析填空题：学生答案内嵌到括号内 + 参考答案紧跟括号后
-const parseFillBlankWithAnswers = (content: string, studentAnswers: string[], correctAnswers: string[], showReference: boolean) => {
-  if (!content) return []
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const parts: any[] = []
-  const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）|\(\s*\)/g
-
-  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
-
-  let match
-  while ((match = imgRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
-  }
-  while ((match = blankRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
-  }
-
-  allMatches.sort((a, b) => a.index - b.index)
-
-  let lastIndex = 0
-  let blankIndex = 0
-
-  for (const m of allMatches) {
-    if (m.index > lastIndex) {
-      const text = content.slice(lastIndex, m.index)
-      if (text) {
-        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-        html = html.replace(/\n/g, '<br>')
-        parts.push({ type: 'text', html })
-      }
-    }
-
-    if (m.type === 'image') {
-      let src = m.value!
-      if (src.startsWith('/')) src = `${base}${src}`
-      parts.push({ type: 'image', src })
-    } else if (m.type === 'blank') {
-      parts.push({
-        type: 'blank',
-        index: blankIndex,
-        studentAnswer: studentAnswers[blankIndex] || '',
-        referenceAnswer: correctAnswers[blankIndex] || '',
-        showReference,
-      })
-      blankIndex++
-    }
-
-    lastIndex = m.index + m.length
-  }
-
-  if (lastIndex < content.length) {
-    const text = content.slice(lastIndex)
-    if (text) {
-      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-      html = html.replace(/\n/g, '<br>')
-      parts.push({ type: 'text', html })
-    }
-  }
-
-  return parts
-}
 
 // 解析填空题参考答案为数组
 const parseCorrectAnswers = (questionId: number): string[] => {

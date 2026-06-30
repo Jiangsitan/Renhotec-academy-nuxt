@@ -78,29 +78,14 @@
             />
           </div>
 
-          <!-- 填空题：分离内容和答案 -->
-          <div v-else-if="question.type === 5" class="fill-blank-container">
-            <!-- 题目内容区域 -->
-            <div class="fill-blank-question-content text-sm text-gray-700">
-              <template v-for="(part, idx) in parseFillBlankContent(question.content)" :key="idx">
-                <img v-if="part.type === 'image'" :src="part.src" />
-                <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
-                <span v-else v-html="part.html"></span>
-              </template>
-            </div>
-            <!-- 答案输入区域 -->
-            <div class="fill-blank-answers-section">
-              <div v-for="blank in getBlankCount(question.content)" :key="blank" class="fill-blank-answer-row">
-                <span class="fill-blank-answer-label">第{{ blank }}空</span>
-                <input
-                  type="text"
-                  :value="answers[question.id]?.[blank - 1] ?? ''"
-                  @input="updateFillBlank(question.id, blank - 1, ($event.target as HTMLInputElement).value)"
-                  placeholder="请输入答案"
-                  class="fill-blank-input"
-                />
-              </div>
-            </div>
+          <!-- 填空题：内联输入（括号+自适应宽度） -->
+          <div v-else-if="question.type === 5">
+            <ExamFillBlankInput
+              :content="question.content"
+              :answers="answers[question.id] || []"
+              :editable="true"
+              @update:answers="(val: string[]) => updateFillBlankArray(question.id, val)"
+            />
           </div>
         </div>
       </div>
@@ -155,7 +140,7 @@ const isOpen = computed({
 const exam = ref<any>(null)
 const questions = ref<any[]>([])
 const answers = ref<Record<number, any>>({})
-const parsedBlanks = ref<Record<number, { type: 'text' | 'blank'; text?: string; blankIndex?: number }[]>>({})
+// parsedBlanks removed - FillBlankInput handles its own parsing
 const submitting = ref(false)
 const remaining = ref(0)
 let timerInterval: ReturnType<typeof setInterval> | null = null
@@ -192,73 +177,9 @@ const toggleMultiple = (qid: number, key: string) => {
   answers.value[qid] = current
 }
 
-// 解析填空题内容为片段数组（图片/空位/文字）
-const parseFillBlankContent = (content: string) => {
-  if (!content) return []
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const parts: any[] = []
-  const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）|\(\s*\)/g
 
-  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
 
-  let match
-  while ((match = imgRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
-  }
-  while ((match = blankRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
-  }
 
-  allMatches.sort((a, b) => a.index - b.index)
-
-  let lastIndex = 0
-  let blankIndex = 0
-
-  for (const m of allMatches) {
-    if (m.index > lastIndex) {
-      const text = content.slice(lastIndex, m.index)
-      if (text) {
-        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-        html = html.replace(/\n/g, '<br>')
-        parts.push({ type: 'text', html })
-      }
-    }
-
-    if (m.type === 'image') {
-      let src = m.value!
-      if (src.startsWith('/')) src = `${base}${src}`
-      parts.push({ type: 'image', src })
-    } else if (m.type === 'blank') {
-      parts.push({ type: 'blank', index: blankIndex })
-      blankIndex++
-    }
-
-    lastIndex = m.index + m.length
-  }
-
-  if (lastIndex < content.length) {
-    const text = content.slice(lastIndex)
-    if (text) {
-      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-      html = html.replace(/\n/g, '<br>')
-      parts.push({ type: 'text', html })
-    }
-  }
-
-  return parts
-}
-
-// 获取填空数量
-const getBlankCount = (content: string) => {
-  if (!content) return 0
-  const matches = content.match(/（\s*）|\(\s*\)/g)
-  return matches ? matches.length : 0
-}
 
 // 更新填空答案
 const updateFillBlank = (qid: number, index: number, value: string) => {
@@ -267,13 +188,12 @@ const updateFillBlank = (qid: number, index: number, value: string) => {
   answers.value = { ...answers.value, [qid]: arr }
 }
 
-// 渲染填空题内容（去除填空标记，只保留图片和文字）
-const renderFillBlankContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const cleaned = content.replace(/（\s*）/g, '')
-  return renderHtml(cleaned, base)
+// 批量更新填空答案（从 FillBlankInput 组件）
+const updateFillBlankArray = (qid: number, newAnswers: string[]) => {
+  answers.value = { ...answers.value, [qid]: newAnswers }
 }
+
+
 
 const loadExam = async () => {
   try {
@@ -309,10 +229,7 @@ const loadExam = async () => {
           answers.value[q.id] = q.type === 2 || q.type === 5 ? [] : ''
         }
         
-        // 预计算填空内容
-        if (q.type === 5) {
-          parsedBlanks.value[q.id] = parseFillBlankContent(q.content)
-        }
+        // 填空题答案已初始化（无需预计算内容）
       })
 
       remaining.value = (exam.value?.time_limit || 10) * 60
@@ -335,7 +252,7 @@ const loadExam = async () => {
       if (q.type === 5) { // 填空题
         const blankCount = (q.content.match(/（\s*）|\(\s*\)/g) || []).length
         answers.value[q.id] = new Array(blankCount).fill('')
-        parsedBlanks.value[q.id] = parseFillBlankContent(q.content)
+  
       } else {
         answers.value[q.id] = q.type === 2 ? [] : '' // 多选题初始化数组，其他初始化空字符串
       }

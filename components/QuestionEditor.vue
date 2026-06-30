@@ -34,17 +34,17 @@
         请在题目内容中用（）标记空位
       </div>
 
-      <!-- 实时预览 -->
+      <!-- 实时预览：内联括号+自适应宽度 -->
       <div v-if="form.content" class="mt-4">
         <p class="text-xs text-gray-400 mb-2">学生端预览：</p>
-        <div class="p-4 bg-gray-50 rounded-lg border fill-blank-inline">
-          <template v-for="(part, idx) in parsedPreview" :key="idx">
-            <img v-if="part.type === 'image'" :src="part.src" class="fill-blank-inline-img" />
-            <span v-else-if="part.type === 'blank'" class="fill-blank-preview" :class="{ block: part.display === 'block' }">
-              第{{ part.index + 1 }}空
-            </span>
-            <span v-else v-html="part.html"></span>
-          </template>
+        <div class="p-4 bg-gray-50 rounded-lg border">
+          <ExamFillBlankInput
+            :content="form.content"
+            :answers="blankAnswers"
+            :editable="true"
+            :show-reference="true"
+            :reference-answers="blankAnswers"
+          />
         </div>
       </div>
     </template>
@@ -185,53 +185,7 @@ watch(blankAnswers, () => {
   }
 }, { deep: true })
 
-// 解析内容为预览片段
-const parsedPreview = computed(() => {
-  if (!form.content) return []
-  const parts: any[] = []
-  const regex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）|\(\s*\)/g
-  let lastIndex = 0
-  let blankIndex = 0
 
-  // 先按顺序解析图片和空位
-  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
-
-  let match
-  while ((match = regex.exec(form.content)) !== null) {
-    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
-  }
-  while ((match = blankRegex.exec(form.content)) !== null) {
-    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
-  }
-
-  allMatches.sort((a, b) => a.index - b.index)
-
-  for (const m of allMatches) {
-    if (m.index > lastIndex) {
-      const text = form.content.slice(lastIndex, m.index)
-      if (text) parts.push({ type: 'text', html: text.replace(/\n/g, '<br>') })
-    }
-
-    if (m.type === 'image') {
-      parts.push({ type: 'image', src: m.value })
-    } else if (m.type === 'blank') {
-      const prevPart = parts[parts.length - 1]
-      const display = prevPart?.type === 'image' ? 'block' : 'inline'
-      parts.push({ type: 'blank', index: blankIndex, display })
-      blankIndex++
-    }
-
-    lastIndex = m.index + m.length
-  }
-
-  if (lastIndex < form.content.length) {
-    const text = form.content.slice(lastIndex)
-    if (text) parts.push({ type: 'text', html: text.replace(/\n/g, '<br>') })
-  }
-
-  return parts
-})
 
 const extractedImages = computed(() => {
   const matches = form.content.match(/<img[^>]+src="([^"]+)"/g) || []

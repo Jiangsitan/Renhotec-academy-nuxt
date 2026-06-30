@@ -48,29 +48,14 @@
       </label>
     </div>
 
-    <!-- 填空题：分离内容和答案 -->
-    <div v-else-if="question.type === 5" class="fill-blank-container">
-      <!-- 题目内容区域 -->
-      <div class="fill-blank-question-content text-gray-700">
-        <template v-for="(part, idx) in parsedContent" :key="idx">
-          <img v-if="part.type === 'image'" :src="part.src" />
-          <span v-else-if="part.type === 'blank'" class="fill-blank-preview">第{{ part.index + 1 }}空</span>
-          <span v-else v-html="part.html"></span>
-        </template>
-      </div>
-      <!-- 答案输入区域 -->
-      <div class="fill-blank-answers-section">
-        <div v-for="blank in blankCount" :key="blank" class="fill-blank-answer-row">
-          <span class="fill-blank-answer-label">第{{ blank }}空</span>
-          <input
-            type="text"
-            :value="(modelValue || [])[blank - 1] || ''"
-            @input="updateFillBlank(blank - 1, ($event.target as HTMLInputElement).value)"
-            placeholder="请输入答案"
-            class="fill-blank-input"
-          />
-        </div>
-      </div>
+    <!-- 填空题：内联输入（括号+自适应宽度） -->
+    <div v-else-if="question.type === 5">
+      <ExamFillBlankInput
+        :content="question.content"
+        :answers="modelValue || []"
+        :editable="true"
+        @update:answers="(val: string[]) => emit('update', val)"
+      />
     </div>
 
     <!-- 简答题 -->
@@ -138,77 +123,5 @@ const renderHtml = (content: string, base: string) => {
   return html
 }
 
-// 解析填空题内容为片段数组（图片/空位/文字）
-const parsedContent = computed(() => {
-  if (!props.question.content) return []
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const content = props.question.content
-  const parts: any[] = []
-  const imgRegex = /<img[^>]+src="([^"]+)"/g
-  const blankRegex = /（\s*）|\(\s*\)/g
 
-  const allMatches: { type: string; index: number; length: number; value?: string }[] = []
-
-  let match
-  while ((match = imgRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'image', index: match.index, length: match[0].length, value: match[1] })
-  }
-  while ((match = blankRegex.exec(content)) !== null) {
-    allMatches.push({ type: 'blank', index: match.index, length: match[0].length })
-  }
-
-  allMatches.sort((a, b) => a.index - b.index)
-
-  let lastIndex = 0
-  let blankIndex = 0
-
-  for (const m of allMatches) {
-    if (m.index > lastIndex) {
-      const text = content.slice(lastIndex, m.index)
-      if (text) {
-        let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-        html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-        html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-        html = html.replace(/\n/g, '<br>')
-        parts.push({ type: 'text', html })
-      }
-    }
-
-    if (m.type === 'image') {
-      let src = m.value!
-      if (src.startsWith('/')) src = `${base}${src}`
-      parts.push({ type: 'image', src })
-    } else if (m.type === 'blank') {
-      parts.push({ type: 'blank', index: blankIndex })
-      blankIndex++
-    }
-
-    lastIndex = m.index + m.length
-  }
-
-  if (lastIndex < content.length) {
-    const text = content.slice(lastIndex)
-    if (text) {
-      let html = text.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-      html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-      html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-      html = html.replace(/\n/g, '<br>')
-      parts.push({ type: 'text', html })
-    }
-  }
-
-  return parts
-})
-
-// 填空数量
-const blankCount = computed(() => {
-  return parsedContent.value.filter(p => p.type === 'blank').length
-})
-
-// 更新填空答案
-const updateFillBlank = (index: number, value: string) => {
-  const current = [...(props.modelValue || [])]
-  current[index] = value
-  emit('update', current)
-}
 </script>
