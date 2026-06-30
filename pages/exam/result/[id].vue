@@ -97,7 +97,7 @@
         v-for="(answer, idx) in record.answers"
         :key="idx"
         class="bg-white rounded-xl border p-5"
-        :class="answer.is_correct === true ? 'border-green-200' : answer.is_correct === false ? 'border-red-200' : 'border-gray-200'"
+        :class="isCorrect(answer) ? 'border-green-200' : isWrong(answer) ? 'border-red-200' : 'border-gray-200'"
       >
         <!-- 题目头部 -->
         <div class="flex items-start justify-between mb-3">
@@ -107,10 +107,10 @@
             <span class="text-xs text-gray-400">{{ formatScore(getQuestionScore(answer.question_id)) }} 分</span>
           </div>
           <div class="flex items-center gap-2">
-            <span v-if="answer.is_correct === true" class="text-sm text-green-600 flex items-center gap-1">
+            <span v-if="isCorrect(answer)" class="text-sm text-green-600 flex items-center gap-1">
               <UIcon name="i-heroicons-check-circle" class="w-4 h-4" /> 正确
             </span>
-            <span v-else-if="answer.is_correct === false" class="text-sm text-red-600 flex items-center gap-1">
+            <span v-else-if="isWrong(answer)" class="text-sm text-red-600 flex items-center gap-1">
               <UIcon name="i-heroicons-x-circle" class="w-4 h-4" /> 错误
             </span>
             <span v-else-if="answer.auto_graded" class="text-sm text-blue-500 flex items-center gap-1">
@@ -128,7 +128,7 @@
               getQuestionContent(answer.question_id),
               answer.answer || [],
               parseCorrectAnswers(answer.question_id),
-              answer.is_correct === false
+              isWrong(answer)
             )" :key="pIdx">
               <img v-if="part.type === 'image'" :src="part.src" />
               <template v-else-if="part.type === 'blank'">
@@ -161,11 +161,11 @@
         <div v-if="!isFillBlank(answer.question_id)" class="flex flex-wrap gap-4 text-sm">
           <div>
             <span class="text-gray-500">你的答案：</span>
-            <span :class="answer.is_correct ? 'text-green-600' : 'text-red-600 font-medium'">
+            <span :class="isCorrect(answer) ? 'text-green-600' : 'text-red-600 font-medium'">
               {{ formatAnswer(answer.answer) }}
             </span>
           </div>
-          <div v-if="answer.is_correct === false">
+          <div v-if="isWrong(answer)">
             <span class="text-gray-500">正确答案：</span>
             <span class="text-green-600 font-medium">{{ getCorrectAnswer(answer.question_id) }}</span>
           </div>
@@ -245,10 +245,10 @@ const reviewCourses = computed(() => {
 
   for (const answer of record.value.answers) {
     // 未得分或 0 分的题目
-    const isWrong = answer.is_correct === false
-      || (answer.is_correct === null && Number(answer.score_awarded ?? 0) === 0)
+    const isWrongAnswer = isWrong(answer)
+      || (isPending(answer) && Number(answer.score_awarded ?? 0) === 0)
 
-    if (!isWrong) continue
+    if (!isWrongAnswer) continue
 
     const question = record.value.exam.questions.find((q: any) => q.id === answer.question_id)
     if (!question?.course_id) continue
@@ -309,6 +309,11 @@ const loadRecord = async () => {
 const findQuestion = (questionId: number) => {
   return record.value?.exam?.questions?.find((q: any) => q.id === questionId)
 }
+
+// 统一判断 is_correct：兼容 true/false 和 0/1
+const isCorrect = (answer: any) => Number(answer?.is_correct) === 1
+const isWrong = (answer: any) => Number(answer?.is_correct) === 0
+const isPending = (answer: any) => answer?.is_correct == null
 
 const getQuestionContent = (questionId: number) => findQuestion(questionId)?.content ?? ''
 const getQuestionType = (questionId: number) => findQuestion(questionId)?.type ?? ''
@@ -569,11 +574,11 @@ const formatAnswer = (answer: any) => {
 
 // 判断是否显示课程复习提示
 const shouldShowCourseReview = (answer: any) => {
-  // 客观题：is_correct === false
-  if (answer.is_correct === false) return true
+  // 客观题：答错
+  if (isWrong(answer)) return true
   
-  // 填空题/简答题：is_correct === null 且未得满分
-  if (answer.is_correct === null) {
+  // 填空题/简答题：未评且未得满分
+  if (isPending(answer)) {
     const questionScore = getQuestionScore(answer.question_id)
     return questionScore > 0 && Number(answer.score_awarded ?? 0) < questionScore
   }
