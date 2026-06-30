@@ -13,8 +13,8 @@
     <UCard class="mb-6">
       <div class="text-center">
         <h1 class="text-xl font-bold text-gray-900 mb-2">{{ record.exam?.title }}</h1>
-        <div class="text-5xl font-bold my-4" :class="isPassed ? 'text-green-600' : 'text-red-500'">
-          {{ record.total_score != null ? formatScore(record.total_score) : '未通过' }}
+        <div class="text-5xl font-bold my-4" :class="record.status === 3 ? 'text-orange-500' : isPassed ? 'text-green-600' : 'text-red-500'">
+          {{ record.status === 3 ? '等待批改中...' : record.total_score != null ? formatScore(record.total_score) : '-' }}
         </div>
         <div class="text-sm text-gray-500">
           <span v-if="record.exam?.passing_score">及格线: {{ formatScore(record.exam.passing_score) }} 分</span>
@@ -223,13 +223,16 @@ const recordId = Number(route.params.id)
 const record = ref<any>(null)
 const loading = ref(true)
 
+const isPendingReview = computed(() => record.value?.status === 3)
+
 const isPassed = computed(() => {
+  if (isPendingReview.value) return null
   if (!record.value?.total_score || !record.value?.exam?.passing_score) return false
   return record.value.total_score >= record.value.exam.passing_score
 })
 
 const isFailed = computed(() => {
-  if (!record.value) return false
+  if (!record.value || isPendingReview.value) return false
   // 已批改且未通过
   return (record.value.status === 4 || record.value.status === 2)
     && record.value.total_score != null

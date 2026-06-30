@@ -306,7 +306,7 @@ const isAllAutoGraded = computed(() => {
 const getStatusLabel = (r: any) => {
   if (r.status === 3) return '待批改'
   if (r.status === 4 || r.status === 2 || r.status === 5) {
-    if (r.total_score !== null && r.exam?.passing_score) {
+    if (r.total_score !== null && r.exam?.passing_score != null) {
       return r.total_score >= r.exam.passing_score ? '已通过' : '未通过'
     }
     return '未通过'
@@ -318,7 +318,7 @@ const getStatusColor = (r: any) => {
   if (r.status === 3) return 'orange'
   if (r.status === 5) return 'red'
   if (r.status === 4 || r.status === 2) {
-    if (r.total_score !== null && r.exam?.passing_score) {
+    if (r.total_score !== null && r.exam?.passing_score != null) {
       return r.total_score >= r.exam.passing_score ? 'green' : 'red'
     }
     return 'blue'
@@ -328,7 +328,7 @@ const getStatusColor = (r: any) => {
 
 const getScoreClass = (r: any) => {
   if (r.status === 4 || r.status === 2) {
-    if (r.total_score !== null && r.exam?.passing_score) {
+    if (r.total_score !== null && r.exam?.passing_score != null) {
       return r.total_score >= r.exam.passing_score ? 'text-green-600' : 'text-red-500'
     }
   }

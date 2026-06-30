@@ -331,7 +331,7 @@ const loadExam = async () => {
     // 初始化答案和预计算填空内容
     questions.value.forEach(q => {
       if (q.type === 5) { // 填空题
-        const blankCount = (q.content.match(/（\s*）/g) || []).length
+        const blankCount = (q.content.match(/（\s*）|\(\s*\)/g) || []).length
         answers.value[q.id] = new Array(blankCount).fill('')
         parsedBlanks.value[q.id] = parseFillBlankContent(q.content)
       } else {
