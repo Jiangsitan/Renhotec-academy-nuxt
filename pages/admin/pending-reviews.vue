@@ -492,6 +492,10 @@ const openReviewModal = async (record: any) => {
   showReviewModal.value = true
 }
 
+const findQuestion = (questionId: number) => {
+  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
+}
+
 const getQuestionContent = (qid: number) => reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === qid)?.content ?? ''
 const getQuestionScore = (qid: number) => reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === qid)?.score ?? 0
 const getQuestionIndex = (qid: number) => {

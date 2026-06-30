@@ -319,6 +319,10 @@ const viewDetail = (record: any) => {
   window.open(`/exam/result/${record.id}`, '_blank')
 }
 
+const findQuestion = (questionId: number) => {
+  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
+}
+
 const getQuestionContent = (questionId: number) => {
   return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.content ?? ''
 }
