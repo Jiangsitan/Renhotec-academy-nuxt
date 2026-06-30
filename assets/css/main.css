@@ -128,7 +128,7 @@ body {
   border-radius: 4px;
   padding: 1px 6px;
   margin-left: 20px;
-  white-space: nowrap;
+  word-break: break-word;
   font-weight: 500;
 }
 
@@ -139,6 +139,8 @@ body {
   border-radius: 8px;
   padding: 10px 14px;
   margin-top: 10px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* 答案与参考答案之间的间距 */
