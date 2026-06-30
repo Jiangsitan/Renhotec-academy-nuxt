@@ -339,14 +339,14 @@ const renderHtml = (content: string, base: string) => {
 const renderFillBlankContent = (content: string) => {
   if (!content) return ''
   const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  const cleaned = content.replace(/（\s*）/g, '')
+  const cleaned = content.replace(/（\s*）|\(\s*\)/g, '')
   return renderHtml(cleaned, base)
 }
 
 // 解析填空题内容
 const parseFillBlankContent = (content: string) => {
   const parts: { type: 'text' | 'blank'; text?: string; blankIndex?: number }[] = []
-  const regex = /（\s*）/g
+  const regex = /（\s*）|\(\s*\)/g
   let lastIndex = 0
   let blankIndex = 0
   let match
