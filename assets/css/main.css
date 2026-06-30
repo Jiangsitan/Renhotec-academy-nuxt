@@ -122,9 +122,14 @@ body {
 .fill-blank-inline-ref {
   display: inline;
   font-size: 12px;
-  color: #2563eb;
-  margin-left: 4px;
+  color: #b45309;
+  background-color: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 10px;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 /* 预览标记样式（管理后台编辑器） */
