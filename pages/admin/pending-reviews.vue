@@ -146,13 +146,22 @@
           <p class="text-sm"><strong>学员：</strong>{{ reviewingRecord?.user?.name }} ({{ reviewingRecord?.user?.employee_no }})</p>
           <p class="text-sm"><strong>考试：</strong>{{ reviewingRecord?.exam?.title }}</p>
           <p class="text-sm"><strong>客观题得分：</strong>{{ formatScore(reviewingRecord?.objective_score) }} 分</p>
+          <p class="text-sm"><strong>主观题得分：</strong>{{ formatScore(reviewingRecord?.subjective_score) }} 分</p>
         </div>
 
-        <div v-for="(answer, idx) in subjectiveAnswers" :key="idx" class="mb-5 p-4 bg-gray-50 rounded-lg">
+        <div v-for="(answer, idx) in allAnswers" :key="idx" class="mb-5 p-4 rounded-lg"
+          :class="{
+            'bg-green-50 border border-green-200': answer.is_correct === true,
+            'bg-red-50 border border-red-200': answer.is_correct === false,
+            'bg-orange-50 border border-orange-200': answer.is_correct === null
+          }">
           <div class="flex items-center justify-between mb-2">
             <p class="text-sm font-medium text-gray-700">第 {{ getQuestionIndex(answer.question_id) }} 题{{ getQuestionTypeLabel(answer.question_id) }}</p>
-            <UBadge v-if="answer.auto_graded" label="已自动评分" color="blue" size="xs" />
-            <UBadge v-else label="需人工评分" color="orange" size="xs" />
+            <div class="flex items-center gap-2">
+              <UBadge v-if="answer.is_correct === true" label="正确" color="green" size="xs" />
+              <UBadge v-else-if="answer.is_correct === false" label="错误" color="red" size="xs" />
+              <UBadge v-else label="待判定" color="orange" size="xs" />
+            </div>
           </div>
 
           <!-- 填空题：内联括号+自适应宽度 -->
@@ -179,17 +188,34 @@
             <span class="font-medium">参考答案：</span>{{ getCorrectAnswer(answer.question_id) }}
           </div>
 
-          <div class="flex items-center gap-3">
-            <label class="text-sm text-gray-600">评分：</label>
-            <UInput
-              v-model.number="scores[answer.question_id]"
-              type="number"
-              :max="getQuestionScore(answer.question_id)"
-              min="0"
-              step="0.5"
-              class="w-24"
-            />
-            <span class="text-xs text-gray-400">/ {{ formatScore(getQuestionScore(answer.question_id)) }} 分</span>
+          <div class="flex items-center gap-4 mt-3">
+            <!-- 对错状态切换 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600">对错：</label>
+              <UToggle 
+                v-model="correctness[answer.question_id]" 
+                :on-icon="'i-heroicons-check'" 
+                :off-icon="'i-heroicons-x-mark'"
+                :disabled="isChoiceType(answer.question_id)"
+              />
+              <span class="text-xs" :class="correctness[answer.question_id] ? 'text-green-600' : 'text-red-500'">
+                {{ correctness[answer.question_id] ? '正确' : '错误' }}
+              </span>
+            </div>
+
+            <!-- 评分 -->
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600">评分：</label>
+              <UInput
+                v-model.number="scores[answer.question_id]"
+                type="number"
+                :max="getQuestionScore(answer.question_id)"
+                min="0"
+                step="0.5"
+                class="w-24"
+              />
+              <span class="text-xs text-gray-400">/ {{ formatScore(getQuestionScore(answer.question_id)) }} 分</span>
+            </div>
           </div>
         </div>
 
@@ -227,6 +253,7 @@
 
 <script setup lang="ts">
 import { formatScore } from '~/utils/format'
+import { QUESTION_TYPE, normalizeQuestionType } from '~/utils/questionType'
 
 definePageMeta({ middleware: 'admin' })
 
@@ -257,8 +284,9 @@ const batchAssignForm = reactive({ assigned_to: '' })
 const showReviewModal = ref(false)
 const reviewingRecord = ref<any>(null)
 const reviewing = ref(false)
-const subjectiveAnswers = ref<any[]>([])
+const allAnswers = ref<any[]>([])
 const scores = ref<Record<number, number>>({})
+const correctness = ref<Record<number, boolean>>({})
 const reviewComment = ref('')
 
 // 部门选项
@@ -292,8 +320,16 @@ const formatDate = (d: string) => d ? new Date(d).toLocaleString('zh-CN') : '-'
 
 // 判断是否所有题目都已自动评分
 const isAllAutoGraded = computed(() => {
-  return subjectiveAnswers.value.length > 0 && subjectiveAnswers.value.every((a: any) => a.auto_graded)
+  return allAnswers.value.length > 0 && allAnswers.value.every((a: any) => a.auto_graded)
 })
+
+// 判断是否为选择题（单选/多选/判断）
+const isChoiceType = (questionId: number) => {
+  const question = reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
+  if (!question) return false
+  const normalizedType = normalizeQuestionType(question.type)
+  return [QUESTION_TYPE.SINGLE, QUESTION_TYPE.MULTIPLE, QUESTION_TYPE.TRUEFALSE].includes(normalizedType)
+}
 
 const getStatusLabel = (r: any) => {
   if (r.status === 3) return '待批改'
@@ -466,6 +502,7 @@ const exportToExcel = async () => {
 const openReviewModal = async (record: any) => {
   reviewingRecord.value = record
   scores.value = {}
+  correctness.value = {}
   reviewComment.value = ''
 
   try {
@@ -474,12 +511,22 @@ const openReviewModal = async (record: any) => {
 
     reviewingRecord.value = fullRecord
 
-    // 筛选需要批改的题目：is_correct === null
-    subjectiveAnswers.value = (fullRecord.answers || []).filter((a: any) => a.is_correct === null)
+    // 显示所有题目（不再过滤）
+    allAnswers.value = fullRecord.answers || []
 
-    // 初始化分数
-    subjectiveAnswers.value.forEach((a: any) => { scores.value[a.question_id] = a.score_awarded || 0 })
-  } catch { subjectiveAnswers.value = [] }
+    // 初始化分数和对错状态
+    allAnswers.value.forEach((a: any) => {
+      scores.value[a.question_id] = a.score_awarded || 0
+      // 对于选择题，根据答案是否与正确答案一致自动判断
+      const normalizedType = normalizeQuestionType(a.question_type)
+      if ([QUESTION_TYPE.SINGLE, QUESTION_TYPE.MULTIPLE, QUESTION_TYPE.TRUEFALSE].includes(normalizedType)) {
+        correctness.value[a.question_id] = a.is_correct ?? false
+      } else {
+        // 主观题保持原有状态或设为待判定
+        correctness.value[a.question_id] = a.is_correct ?? false
+      }
+    })
+  } catch { allAnswers.value = [] }
 
   showReviewModal.value = true
 }
@@ -568,12 +615,15 @@ const quickApprove = async () => {
   reviewing.value = true
   try {
     const scoresToSend: Record<number, number> = {}
-    subjectiveAnswers.value.forEach((a: any) => {
+    const correctnessToSend: Record<number, boolean> = {}
+    allAnswers.value.forEach((a: any) => {
       scoresToSend[a.question_id] = a.score_awarded || 0
+      correctnessToSend[a.question_id] = a.is_correct ?? false
     })
     
     await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      subjective_scores: scoresToSend,
+      scores: scoresToSend,
+      correctness: correctnessToSend,
       comment: null,
       action: 'approve',
     })
@@ -591,7 +641,8 @@ const handleReview = async () => {
   reviewing.value = true
   try {
     await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      subjective_scores: scores.value,
+      scores: scores.value,
+      correctness: correctness.value,
       comment: reviewComment.value || null,
       action: 'approve',
     })
