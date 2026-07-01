@@ -613,10 +613,9 @@ const handleQuestionSubmit = async () => {
           score: Number(q.score) || 0,
           course_id: q.course_id || null,
         }
-        await api.put(`/admin/exams/${editingExam.value.id}/questions/${existing.id}`, payload)
-        q.id = existing.id
-        q._isNew = false
-        questions.value[editingQuestionIndex.value] = q
+        const res = await api.put<any>(`/admin/exams/${editingExam.value.id}/questions/${existing.id}`, payload)
+        const savedQ = { ...(res.data || q), id: existing.id, _isNew: false }
+        questions.value[editingQuestionIndex.value] = savedQ
         toast.add({ title: '题目已保存', color: 'green' })
       } catch (e: any) {
         toast.add({ title: e?.data?.message || '保存失败', color: 'red' })
@@ -645,9 +644,8 @@ const handleQuestionSubmit = async () => {
           course_id: q.course_id || null,
         }
         const res = await api.post<any>(`/admin/exams/${editingExam.value.id}/questions`, payload)
-        q.id = res.data.id
-        q._isNew = false
-        questions.value.push(q)
+        const savedQ = { ...(res.data || q), _isNew: false }
+        questions.value.push(savedQ)
         toast.add({ title: '题目已保存', color: 'green' })
       } catch (e: any) {
         toast.add({ title: e?.data?.message || '保存失败', color: 'red' })

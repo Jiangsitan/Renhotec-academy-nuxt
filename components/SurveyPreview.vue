@@ -8,6 +8,7 @@
 import 'survey-core/survey-core.css'
 import { Model } from 'survey-core'
 import { SurveyComponent } from 'survey-vue3-ui'
+import { BLANK_REGEX } from '~/utils/fillBlank'
 
 const props = defineProps<{
   questions: any[]
@@ -77,7 +78,7 @@ function buildSurveyModel() {
         break
 
       case 5: {
-        const blanks = (q.content || '').match(/（\s*）/g) || []
+        const blanks = (q.content || '').match(BLANK_REGEX) || []
         elements.push({
           ...base,
           type: 'multipletext',

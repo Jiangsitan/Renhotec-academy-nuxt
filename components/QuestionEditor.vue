@@ -149,6 +149,37 @@ if (props.question?.type === 5 && props.question?.correct_answer) {
   }
 }
 
+// 当 question prop 变化时重新初始化（编辑不同题目时触发）
+watch(() => props.question, (newQ) => {
+  if (newQ) {
+    form.type = newQ.type || 1
+    form.content = newQ.content || ''
+    form.options = newQ.options
+      ? [...newQ.options.map((o: any) => ({ ...o }))]
+      : [
+          { key: 'A', value: '' },
+          { key: 'B', value: '' },
+          { key: 'C', value: '' },
+          { key: 'D', value: '' },
+        ]
+    form.correct_answer = newQ.correct_answer || ''
+    form.score = newQ.score || 10
+    form.course_id = newQ.course_id || ''
+
+    // 重新初始化填空答案
+    if (newQ.type === 5 && newQ.correct_answer) {
+      try {
+        const arr = JSON.parse(newQ.correct_answer)
+        blankAnswers.value = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())
+      } catch {
+        blankAnswers.value = newQ.correct_answer.split(',').map((s: string) => s.trim())
+      }
+    } else {
+      blankAnswers.value = []
+    }
+  }
+}, { deep: true })
+
 watch(() => form.type, (newType) => {
   if (newType === 3) { // 判断题
     form.options = [
