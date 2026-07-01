@@ -352,7 +352,7 @@ const openReview = async (record: any) => {
 }
 
 const viewDetail = (record: any) => {
-  window.open(`/exam/result/${record.id}`, '_blank')
+  navigateTo(`/exam/result/${record.id}`)
 }
 
 const findQuestion = (questionId: number) => {

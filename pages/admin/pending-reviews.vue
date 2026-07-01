@@ -410,7 +410,7 @@ const loadReviewers = async () => {
 
 // 查看详情
 const viewDetail = (record: any) => {
-  window.open(`/exam/result/${record.id}`, '_blank')
+  navigateTo(`/exam/result/${record.id}`)
 }
 
 // 分配
