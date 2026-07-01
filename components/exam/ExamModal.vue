@@ -103,7 +103,7 @@
 <script setup lang="ts">
 import ExamFullscreen from './ExamFullscreen.vue'
 import { formatScore } from '~/utils/format'
-
+import { renderContent } from '~/utils/renderContent'
 const props = defineProps<{
   modelValue: boolean
   examId: number
@@ -153,21 +153,7 @@ const displayTime = computed(() => {
 
 const typeLabel = (t: number) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[t] ?? t)
 
-// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
-const renderContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  return renderHtml(content, base)
-}
 
-const renderHtml = (content: string, base: string) => {
-  if (!content) return ''
-  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-  html = html.replace(/\n/g, '<br>')
-  return html
-}
 
 const toggleMultiple = (qid: number, key: string) => {
   const current = [...(answers.value[qid] || [])]

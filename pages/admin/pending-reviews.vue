@@ -254,7 +254,7 @@
 <script setup lang="ts">
 import { formatScore } from '~/utils/format'
 import { QUESTION_TYPE, normalizeQuestionType } from '~/utils/questionType'
-
+import { renderContent } from '~/utils/renderContent'
 definePageMeta({ middleware: 'admin' })
 
 const api = useApi()
@@ -572,20 +572,7 @@ const isFillBlank = (questionId: number) => {
   return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type === 5
 }
 
-const renderContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  return renderHtml(content, base)
-}
 
-const renderHtml = (content: string, base: string) => {
-  if (!content) return ''
-  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-  html = html.replace(/\n/g, '<br>')
-  return html
-}
 
 
 

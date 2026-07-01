@@ -7,7 +7,7 @@
       <span class="text-sm text-gray-400">{{ formatScore(question.score) }} 分</span>
     </div>
 
-    <p class="text-gray-700 mb-4">{{ question.content }}</p>
+    <div class="text-gray-700 mb-4" v-html="renderContent(question.content)"></div>
 
     <div class="space-y-2 text-sm">
       <div class="flex items-start gap-2">
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { formatScore } from '~/utils/format'
+import { renderContent } from '~/utils/renderContent'
 
 const props = defineProps<{
   question: any

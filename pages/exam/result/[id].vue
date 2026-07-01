@@ -133,7 +133,7 @@
         </div>
 
         <!-- 非填空题：普通显示 -->
-        <p v-else class="text-sm text-gray-700 mb-3">{{ getQuestionContent(answer.question_id) }}</p>
+        <div v-else class="text-sm text-gray-700 mb-3" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
 
         <!-- 选项展示（选择题） -->
         <div v-if="getQuestionOptions(answer.question_id)" class="mb-3 space-y-1">
@@ -213,6 +213,7 @@
 <script setup lang="ts">
 import ExamModal from '~/components/exam/ExamModal.vue'
 import { formatScore } from '~/utils/format'
+import { renderContent } from '~/utils/renderContent'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -327,21 +328,7 @@ const getCourseId = (questionId: number) => findQuestion(questionId)?.course_id
 const isShortAnswer = (questionId: number) => findQuestion(questionId)?.type === 4
 const isFillBlank = (questionId: number) => findQuestion(questionId)?.type === 5
 
-// 渲染 HTML 内容（兼容旧的 Markdown 图片语法）
-const renderContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  return renderHtml(content, base)
-}
 
-const renderHtml = (content: string, base: string) => {
-  if (!content) return ''
-  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-  html = html.replace(/\n/g, '<br>')
-  return html
-}
 
 
 

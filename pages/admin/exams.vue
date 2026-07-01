@@ -137,7 +137,7 @@
                   <UButton color="red" variant="ghost" icon="i-heroicons-trash" size="xs" @click="handleDeleteQuestion(idx)" />
                 </div>
               </div>
-              <div class="text-sm text-gray-700 mb-2 fill-blank-content" v-html="renderQuestionContent(q.content)"></div>
+              <div class="text-sm text-gray-700 mb-2 fill-blank-content" v-html="renderContent(q.content)"></div>
               <div v-if="q.options" class="text-xs text-gray-500 space-y-1">
                 <div v-for="opt in q.options" :key="opt.key" class="flex gap-2">
                   <span class="font-medium" :class="isCorrectAnswer(q, opt.key) ? 'text-green-600' : ''">{{ opt.key }}.</span>
@@ -275,7 +275,7 @@
 <script setup lang="ts">
 import { nextTick } from 'vue'
 import { formatScore } from '~/utils/format'
-
+import { renderContent } from '~/utils/renderContent'
 definePageMeta({ middleware: 'admin' })
 
 const api = useApi()
@@ -333,20 +333,7 @@ const isCorrectAnswer = (q: any, key: string) => {
   return q.correct_answer === key
 }
 
-const renderQuestionContent = (content: string) => {
-  if (!content) return ''
-  const base = 'https://rh-wh.oss-cn-shanghai.aliyuncs.com'
-  return renderHtml(content, base)
-}
 
-const renderHtml = (content: string, base: string) => {
-  if (!content) return ''
-  let html = content.replace(/!\[([^\]]*)\]\((\/[^)]+)\)/g, `<img src="${base}$2" alt="$1">`)
-  html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, `<img src="$2" alt="$1">`)
-  html = html.replace(/<img([^>]*?)src="(\/[^"]*?)"/g, `<img$1src="${base}$2"`)
-  html = html.replace(/\n/g, '<br>')
-  return html
-}
 
 const formatFillBlankAnswer = (answer: string) => {
   if (!answer) return ''
