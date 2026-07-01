@@ -45,7 +45,7 @@
                 @change="answers[question.id] = opt.key"
                 class="text-primary-600"
               />
-              <span class="text-sm">{{ opt.key }}. {{ opt.value }}</span>
+              <span class="text-sm">{{ opt.key }}. </span><span class="text-sm" v-html="renderContent(opt.value)"></span>
             </label>
           </div>
 
@@ -64,7 +64,7 @@
                 @change="toggleMultiple(question.id, opt.key)"
                 class="text-primary-600"
               />
-              <span class="text-sm">{{ opt.key }}. {{ opt.value }}</span>
+              <span class="text-sm">{{ opt.key }}. </span><span class="text-sm" v-html="renderContent(opt.value)"></span>
             </label>
           </div>
 

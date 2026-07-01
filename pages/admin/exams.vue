@@ -141,7 +141,7 @@
               <div v-if="q.options" class="text-xs text-gray-500 space-y-1">
                 <div v-for="opt in q.options" :key="opt.key" class="flex gap-2">
                   <span class="font-medium" :class="isCorrectAnswer(q, opt.key) ? 'text-green-600' : ''">{{ opt.key }}.</span>
-                  <span :class="isCorrectAnswer(q, opt.key) ? 'text-green-600 font-medium' : ''">{{ opt.value }}</span>
+                  <span :class="isCorrectAnswer(q, opt.key) ? 'text-green-600 font-medium' : ''" v-html="renderContent(opt.value)"></span>
                   <span v-if="isCorrectAnswer(q, opt.key)" class="text-green-600">✓</span>
                 </div>
               </div>

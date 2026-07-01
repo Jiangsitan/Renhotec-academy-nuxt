@@ -25,7 +25,7 @@
           @change="$emit('update', option.key)"
           class="text-primary-600"
         />
-        <span class="text-sm">{{ option.key }}. {{ option.value }}</span>
+        <span class="text-sm">{{ option.key }}. </span><span class="text-sm" v-html="renderContent(option.value)"></span>
       </label>
     </div>
 
@@ -44,7 +44,7 @@
           @change="toggleMultiple(option.key)"
           class="text-primary-600"
         />
-        <span class="text-sm">{{ option.key }}. {{ option.value }}</span>
+        <span class="text-sm">{{ option.key }}. </span><span class="text-sm" v-html="renderContent(option.value)"></span>
       </label>
     </div>
 
@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { formatScore } from '~/utils/format'
-import { renderHtml } from '~/utils/renderContent'
+import { renderHtml, renderContent } from '~/utils/renderContent'
 
 const props = defineProps<{
   question: any

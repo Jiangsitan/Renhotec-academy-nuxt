@@ -19,6 +19,11 @@
       <div class="mt-2">
         <ImageUploader label="插入图片" @uploaded="insertImage" @error="showError" />
       </div>
+      <!-- 非填空题：内容预览（显示图片） -->
+      <div v-if="form.type !== 5 && form.content" class="mt-3">
+        <p class="text-xs text-gray-400 mb-2">内容预览：</p>
+        <div class="p-4 bg-gray-50 rounded-lg border fill-blank-content" v-html="renderContent(form.content)"></div>
+      </div>
     </UFormGroup>
 
     <!-- 填空题：空位检测 + 每空单独输入框 -->
@@ -61,19 +66,23 @@
           <UInput value="错误" disabled class="flex-1" />
         </div>
       </div>
-      <div v-else class="space-y-2">
-        <div v-for="(opt, idx) in form.options" :key="idx" class="flex items-center gap-2">
-          <span class="w-6 text-sm font-medium">{{ String.fromCharCode(65 + idx) }}</span>
-          <UInput v-model="opt.value" :placeholder="`选项 ${String.fromCharCode(65 + idx)}`" class="flex-1" />
-          <ImageUploader label="" @uploaded="(url) => insertOptionImage(idx, url)" @error="showError" />
-          <UButton
-            v-if="form.options.length > 2"
-            color="red"
-            variant="ghost"
-            icon="i-heroicons-trash"
-            size="xs"
-            @click="form.options.splice(idx, 1)"
-          />
+      <div v-else class="space-y-3">
+        <div v-for="(opt, idx) in form.options" :key="idx">
+          <div class="flex items-center gap-2">
+            <span class="w-6 text-sm font-medium">{{ String.fromCharCode(65 + idx) }}</span>
+            <UInput v-model="opt.value" :placeholder="`选项 ${String.fromCharCode(65 + idx)}`" class="flex-1" />
+            <ImageUploader label="" @uploaded="(url) => insertOptionImage(idx, url)" @error="showError" />
+            <UButton
+              v-if="form.options.length > 2"
+              color="red"
+              variant="ghost"
+              icon="i-heroicons-trash"
+              size="xs"
+              @click="form.options.splice(idx, 1)"
+            />
+          </div>
+          <!-- 选项图片预览 -->
+          <div v-if="opt.value.includes('<img')" class="ml-8 mt-1 p-2 bg-gray-50 rounded border" v-html="renderContent(opt.value)"></div>
         </div>
         <UButton
           v-if="form.options.length < 6"
@@ -107,6 +116,8 @@
 </template>
 
 <script setup lang="ts">
+import { renderContent } from '~/utils/renderContent'
+
 const props = defineProps<{
   question?: any
   courseOptions?: { label: string; value: string }[]

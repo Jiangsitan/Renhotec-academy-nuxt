@@ -144,7 +144,7 @@
             :class="getOptionClass(answer, opt.key)"
           >
             <span class="font-medium w-5">{{ opt.key }}.</span>
-            <span>{{ opt.value }}</span>
+            <span v-html="renderContent(opt.value)"></span>
             <UIcon v-if="isCorrectOption(answer.question_id, opt.key)" name="i-heroicons-check" class="w-4 h-4 text-green-600 ml-auto" />
           </div>
         </div>
