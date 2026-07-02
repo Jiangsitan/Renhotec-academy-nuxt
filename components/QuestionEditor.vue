@@ -117,6 +117,7 @@
 
 <script setup lang="ts">
 import { renderContent } from '~/utils/renderContent'
+import { normalizeQuestionType } from '~/utils/questionType'
 
 const props = defineProps<{
   question?: any
@@ -132,7 +133,7 @@ const questionTypes = [
 ]
 
 const form = reactive({
-  type: props.question?.type || 1,
+  type: normalizeQuestionType(props.question?.type) || 1,
   content: props.question?.content || '',
   options: props.question?.options
     ? [...props.question.options.map((o: any) => ({ ...o }))]
@@ -151,7 +152,7 @@ const form = reactive({
 const blankAnswers = ref<string[]>([])
 
 // 初始化填空答案
-if (props.question?.type === 5 && props.question?.correct_answer) {
+if (normalizeQuestionType(props.question?.type) === 5 && props.question?.correct_answer) {
   try {
     const arr = JSON.parse(props.question.correct_answer)
     blankAnswers.value = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
@@ -163,7 +164,7 @@ if (props.question?.type === 5 && props.question?.correct_answer) {
 // 当 question prop 变化时重新初始化（编辑不同题目时触发）
 watch(() => props.question, (newQ) => {
   if (newQ) {
-    form.type = newQ.type || 1
+    form.type = normalizeQuestionType(newQ.type) || 1
     form.content = newQ.content || ''
     form.options = newQ.options
       ? [...newQ.options.map((o: any) => ({ ...o }))]
@@ -178,7 +179,7 @@ watch(() => props.question, (newQ) => {
     form.course_id = newQ.course_id || ''
 
     // 重新初始化填空答案
-    if (newQ.type === 5 && newQ.correct_answer) {
+    if (normalizeQuestionType(newQ.type) === 5 && newQ.correct_answer) {
       try {
         const arr = JSON.parse(newQ.correct_answer)
         blankAnswers.value = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())

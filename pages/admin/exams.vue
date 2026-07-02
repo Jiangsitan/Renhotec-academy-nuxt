@@ -145,10 +145,10 @@
                   <span v-if="isCorrectAnswer(q, opt.key)" class="text-green-600">✓</span>
                 </div>
               </div>
-              <div v-if="q.type === 4 && q.correct_answer" class="text-xs text-gray-500 mt-1">
+              <div v-if="normalizeQuestionType(q.type) === 4 && q.correct_answer" class="text-xs text-gray-500 mt-1">
                 参考答案：{{ q.correct_answer }}
               </div>
-              <div v-if="q.type === 5 && q.correct_answer" class="text-xs text-gray-500 mt-1">
+              <div v-if="normalizeQuestionType(q.type) === 5 && q.correct_answer" class="text-xs text-gray-500 mt-1">
                 参考答案：{{ formatFillBlankAnswer(q.correct_answer) }}
               </div>
             </div>
@@ -276,6 +276,7 @@
 import { nextTick } from 'vue'
 import { formatScore } from '~/utils/format'
 import { renderContent } from '~/utils/renderContent'
+import { normalizeQuestionType } from '~/utils/questionType'
 definePageMeta({ middleware: 'admin' })
 
 const api = useApi()
@@ -320,7 +321,7 @@ const columns = [
   { key: 'actions', label: '操作' },
 ]
 
-const typeLabel = (t: number) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[t] ?? t)
+const typeLabel = (t: number | string) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答', 5: '填空' }[normalizeQuestionType(t)] ?? t)
 const statusLabel = (s: string) => ({ draft: '草稿', active: '已发布' }[s] ?? s)
 const statusColor = (s: string) => ({ draft: 'gray', active: 'green' }[s] ?? 'gray')
 

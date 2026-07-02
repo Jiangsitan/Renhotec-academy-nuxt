@@ -59,15 +59,21 @@ export const parseFillBlankContent = (content: string): FillBlankPart[] => {
 
 /**
  * 解析填空题参考答案为数组
+ * 支持：JSON数组、JSON对象、逗号/顿号分隔字符串、纯字符串
  */
 export const parseCorrectAnswers = (correctAnswer: string | null | undefined, questionType: number): string[] => {
   if (!correctAnswer) return []
   if (questionType === 5) {
     try {
-      const arr = JSON.parse(correctAnswer)
-      if (Array.isArray(arr)) return arr.map(String)
+      const parsed = JSON.parse(correctAnswer)
+      if (Array.isArray(parsed)) return parsed.map(String)
+      if (typeof parsed === 'object' && parsed !== null) return Object.values(parsed).map(String)
     } catch {
-      // JSON解析失败，作为普通字符串处理
+      // JSON解析失败，尝试分隔符拆分
+    }
+    // 逗号或顿号分隔
+    if (correctAnswer.includes(',') || correctAnswer.includes('、')) {
+      return correctAnswer.split(/[,、]/).map(s => s.trim()).filter(Boolean)
     }
   }
   return [correctAnswer]
@@ -81,10 +87,12 @@ export const formatCorrectAnswer = (correctAnswer: string | null | undefined, qu
 
   if (questionType === 5) {
     try {
-      const arr = JSON.parse(correctAnswer)
-      if (Array.isArray(arr)) return arr.join('、')
-    } catch {
-      // JSON解析失败，作为普通字符串处理
+      const parsed = JSON.parse(correctAnswer)
+      if (Array.isArray(parsed)) return parsed.join('、')
+      if (typeof parsed === 'object' && parsed !== null) return Object.values(parsed).join('、')
+    } catch {}
+    if (correctAnswer.includes(',') || correctAnswer.includes('、')) {
+      return correctAnswer.split(/[,、]/).map(s => s.trim()).filter(Boolean).join('、')
     }
   }
 
