@@ -238,7 +238,6 @@
 
 <script setup lang="ts">
 import { formatScore } from '~/utils/format'
-import { QUESTION_TYPE, normalizeQuestionType } from '~/utils/questionType'
 import { renderContent } from '~/utils/renderContent'
 definePageMeta({ middleware: 'auth' })
 
@@ -258,13 +257,33 @@ const reviewedPage = ref(1)
 const reviewedTotal = ref(0)
 const reviewedPerPage = 15
 
-// 批改弹窗
+// 批改弹窗 — 通过 composable 管理
+const {
+  allAnswers,
+  scores,
+  correctness,
+  comment,
+  reviewingRecord,
+  isAllAutoGraded,
+  totalScore,
+  subjectiveAnswers,
+  initReview,
+  findQuestion,
+  getQuestionContent,
+  getQuestionScore,
+  getQuestionIndex,
+  getCorrectAnswer,
+  getQuestionTypeLabel,
+  isFillBlank,
+  isChoiceType,
+  parseCorrectAnswers,
+  updateScore,
+  updateCorrectness,
+  getReviewPayload,
+  resetReview,
+} = useExamReview()
+
 const showModal = ref(false)
-const reviewingRecord = ref<any>(null)
-const allAnswers = ref<any[]>([])
-const scores = ref<Record<number, number>>({})
-const correctness = ref<Record<number, boolean>>({})
-const comment = ref('')
 const submitting = ref(false)
 
 const formatDate = (dateStr: string) => {
@@ -286,19 +305,6 @@ const getScoreColor = (record: any) => {
   return 'text-gray-700'
 }
 
-// 判断是否所有题目都已自动评分
-const isAllAutoGraded = computed(() => {
-  return allAnswers.value.length > 0 && allAnswers.value.every((a: any) => a.auto_graded)
-})
-
-// 判断是否为选择题（单选/多选/判断）
-const isChoiceType = (questionId: number) => {
-  const question = reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
-  if (!question) return false
-  const normalizedType = normalizeQuestionType(question.type)
-  return [QUESTION_TYPE.SINGLE, QUESTION_TYPE.MULTIPLE, QUESTION_TYPE.TRUEFALSE].includes(normalizedType)
-}
-
 const loadPendingRecords = async () => {
   try {
     const res = await api.get<any>('/mentor/pending-reviews')
@@ -318,35 +324,11 @@ const loadReviewedRecords = async () => {
 }
 
 const openReview = async (record: any) => {
-  reviewingRecord.value = record
-  scores.value = {}
-  correctness.value = {}
-  comment.value = ''
-
-  // 加载答卷详情
   try {
     const res = await api.get<any>(`/exam-records/${record.id}`)
     const fullRecord = res.data
-
-    // 更新 reviewingRecord，使其包含完整的 exam.questions 数据
-    reviewingRecord.value = fullRecord
-
-    // 显示所有题目（不再过滤）
-    allAnswers.value = fullRecord.answers || []
-
-    // 初始化分数和对错状态
-    allAnswers.value.forEach((a: any) => {
-      scores.value[a.question_id] = a.score_awarded || 0
-      // 对于选择题，根据答案是否与正确答案一致自动判断
-      const normalizedType = normalizeQuestionType(a.question_type)
-      if ([QUESTION_TYPE.SINGLE, QUESTION_TYPE.MULTIPLE, QUESTION_TYPE.TRUEFALSE].includes(normalizedType)) {
-        correctness.value[a.question_id] = a.is_correct ?? false
-      } else {
-        // 主观题保持原有状态或设为待判定
-        correctness.value[a.question_id] = a.is_correct ?? false
-      }
-    })
-  } catch {}
+    await initReview(fullRecord)
+  } catch { /* empty */ }
 
   showModal.value = true
 }
@@ -355,89 +337,14 @@ const viewDetail = (record: any) => {
   navigateTo(`/exam/result/${record.id}`)
 }
 
-const findQuestion = (questionId: number) => {
-  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
-}
-
-const getQuestionContent = (questionId: number) => {
-  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.content ?? ''
-}
-
-const getQuestionScore = (questionId: number) => {
-  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.score ?? 0
-}
-
-const getCorrectAnswer = (questionId: number) => {
-  const question = reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)
-  if (!question?.correct_answer) return ''
-  
-  // 填空题：解析 JSON 数组并用顿号连接
-  if (question.type === 5) {
-    try {
-      const arr = JSON.parse(question.correct_answer)
-      if (Array.isArray(arr)) return arr.join('、')
-    } catch {}
-  }
-  
-  return question.correct_answer
-}
-
-// 获取题目类型标签
-const getQuestionTypeLabel = (questionId: number) => {
-  const type = reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type
-  const map: Record<number, string> = {
-    1: '单选题',
-    2: '多选题',
-    3: '判断题',
-    4: '简答题',
-    5: '填空题',
-  }
-  return map[type] || '主观题'
-}
-
-// 判断是否为填空题
-const isFillBlank = (questionId: number) => {
-  return reviewingRecord.value?.exam?.questions?.find((q: any) => q.id === questionId)?.type === 5
-}
-
-
-
-
-
-
-
-// 解析填空题参考答案为数组
-const parseCorrectAnswers = (questionId: number): string[] => {
-  const question = findQuestion(questionId)
-  if (!question?.correct_answer) return []
-  if (question.type === 5) {
-    try {
-      const arr = JSON.parse(question.correct_answer)
-      if (Array.isArray(arr)) return arr.map(String)
-    } catch {}
-  }
-  return [question.correct_answer]
-}
-
-
-
 // 一键审核通过
 const quickApprove = async () => {
   submitting.value = true
   try {
-    const scoresToSend: Record<number, number> = {}
-    const correctnessToSend: Record<number, boolean> = {}
-    allAnswers.value.forEach((a: any) => {
-      scoresToSend[a.question_id] = a.score_awarded || 0
-      correctnessToSend[a.question_id] = a.is_correct ?? false
-    })
-    
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      scores: scoresToSend,
-      correctness: correctnessToSend,
-      comment: null,
-      action: 'approve',
-    })
+    const payload = getReviewPayload()
+    payload.comment = null
+
+    await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
     showModal.value = false
     await loadPendingRecords()
     toast.add({ title: '审核完成', color: 'green' })
@@ -452,12 +359,10 @@ const quickApprove = async () => {
 const submitReview = async () => {
   submitting.value = true
   try {
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, {
-      scores: scores.value,
-      correctness: correctness.value,
-      comment: comment.value || null,
-      action: 'approve',
-    })
+    const payload = getReviewPayload()
+    if (!payload.comment) payload.comment = null
+
+    await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
     showModal.value = false
     await loadPendingRecords()
     toast.add({ title: '批改完成', color: 'green' })
@@ -467,6 +372,7 @@ const submitReview = async () => {
     submitting.value = false
   }
 }
+
 
 onMounted(() => {
   loadPendingRecords()
