@@ -178,16 +178,19 @@ watch(() => props.question, (newQ) => {
     form.score = newQ.score || 10
     form.course_id = newQ.course_id || ''
 
-    // 重新初始化填空答案
+    // 重新初始化填空答案 — 先清空再赋值，防止 push 追加
+    blankAnswers.value = []
     if (normalizeQuestionType(newQ.type) === 5 && newQ.correct_answer) {
       try {
         const arr = JSON.parse(newQ.correct_answer)
-        blankAnswers.value = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())
+        if (Array.isArray(arr)) {
+          blankAnswers.value = [...arr]
+        } else {
+          blankAnswers.value = newQ.correct_answer.split(',').map((s: string) => s.trim())
+        }
       } catch {
         blankAnswers.value = newQ.correct_answer.split(',').map((s: string) => s.trim())
       }
-    } else {
-      blankAnswers.value = []
     }
   }
 }, { deep: true })
@@ -251,11 +254,21 @@ const showError = (msg: string) => {
 }
 
 const getFormData = () => {
+  let answer = form.type === 5 ? blankAnswers.value.join(',') : form.correct_answer
+  // 防御性检查: 如果填空题答案意外传入 JSON 数组字符串，解析后重新拼接
+  if (form.type === 5 && answer && typeof answer === 'string' && answer.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(answer)
+      if (Array.isArray(parsed)) {
+        answer = parsed.join(',')
+      }
+    } catch { /* not JSON, keep as-is */ }
+  }
   return {
     type: form.type,
     content: form.content,
     options: [1, 2, 3].includes(form.type) ? form.options : null,
-    correct_answer: form.type === 5 ? blankAnswers.value.join(',') : form.correct_answer,
+    correct_answer: answer,
     score: form.score,
     course_id: form.course_id || null,
   }
