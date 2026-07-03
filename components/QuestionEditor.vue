@@ -156,19 +156,15 @@ if (normalizeQuestionType(props.question?.type) === 5 && props.question?.correct
   const contentBlankCount = (props.question.content?.match(/（\s*）|\(\s*\)/g) || []).length
   try {
     const arr = JSON.parse(props.question.correct_answer)
-    const parsed = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
+    const parsed = Array.isArray(arr) ? [...arr] : []
     // 移除尾部空元素
     while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-    // 从尾部取 N 个（答案在尾部），前面不足的补空
+    // 从尾部取 N 个，前面不足的补空
     const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
     while (sliced.length < contentBlankCount) sliced.unshift('')
     blankAnswers.value = sliced
   } catch {
-    const parsed = props.question.correct_answer.split(',').map((s: string) => s.trim())
-    while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-    const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
-    while (sliced.length < contentBlankCount) sliced.unshift('')
-    blankAnswers.value = sliced
+    blankAnswers.value = Array(contentBlankCount).fill('')
   }
 }
 
@@ -195,19 +191,15 @@ watch(() => props.question, (newQ) => {
       const contentBlankCount = (newQ.content?.match(/（\s*）|\(\s*\)/g) || []).length
       try {
         const arr = JSON.parse(newQ.correct_answer)
-        const parsed = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())
+        const parsed = Array.isArray(arr) ? [...arr] : []
         // 移除尾部空元素
         while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-        // 从尾部取 N 个（答案在尾部），前面不足的补空
+        // 从尾部取 N 个，前面不足的补空
         const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
         while (sliced.length < contentBlankCount) sliced.unshift('')
         blankAnswers.value = sliced
       } catch {
-        const parsed = newQ.correct_answer.split(',').map((s: string) => s.trim())
-        while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-        const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
-        while (sliced.length < contentBlankCount) sliced.unshift('')
-        blankAnswers.value = sliced
+        blankAnswers.value = Array(contentBlankCount).fill('')
       }
     }
   }
@@ -272,16 +264,7 @@ const showError = (msg: string) => {
 }
 
 const getFormData = () => {
-  let answer = form.type === 5 ? blankAnswers.value.join(',') : form.correct_answer
-  // 防御性检查: 如果填空题答案意外传入 JSON 数组字符串，解析后重新拼接
-  if (form.type === 5 && answer && typeof answer === 'string' && answer.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(answer)
-      if (Array.isArray(parsed)) {
-        answer = parsed.join(',')
-      }
-    } catch { /* not JSON, keep as-is */ }
-  }
+  const answer = form.type === 5 ? JSON.stringify(blankAnswers.value) : form.correct_answer
   return {
     type: form.type,
     content: form.content,

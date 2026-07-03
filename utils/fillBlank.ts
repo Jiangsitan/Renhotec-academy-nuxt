@@ -73,7 +73,7 @@ export const parseCorrectAnswers = (correctAnswer: string | null | undefined, qu
     }
     // 逗号或顿号分隔
     if (correctAnswer.includes(',') || correctAnswer.includes('、')) {
-      return correctAnswer.split(/[,、]/).map(s => s.trim()).filter(Boolean)
+      return correctAnswer.split(/[,、]/).map(s => s.trim())
     }
   }
   return [correctAnswer]
@@ -92,7 +92,7 @@ export const formatCorrectAnswer = (correctAnswer: string | null | undefined, qu
       if (typeof parsed === 'object' && parsed !== null) return Object.values(parsed).join('、')
     } catch {}
     if (correctAnswer.includes(',') || correctAnswer.includes('、')) {
-      return correctAnswer.split(/[,、]/).map(s => s.trim()).filter(Boolean).join('、')
+      return correctAnswer.split(/[,、]/).map(s => s.trim()).join('、')
     }
   }
 
