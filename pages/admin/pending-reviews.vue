@@ -68,7 +68,7 @@
             <!-- 待批改状态：分配 + 批改 -->
             <template v-if="row.status === 3">
               <UButton color="primary" variant="ghost" icon="i-heroicons-user-plus" size="xs" label="分配" @click="openAssignModal(row)" />
-              <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" label="批改" @click="openReviewModal(row)" />
+              <UButton color="gray" variant="ghost" icon="i-heroicons-pencil" size="xs" label="批改" @click="handleOpenReview(row)" />
             </template>
             <!-- 其他状态：查看详情 -->
             <template v-else>
@@ -289,7 +289,7 @@ const {
   isAllAutoGraded,
   totalScore,
   subjectiveAnswers,
-  initReview,
+  openReviewModal,
   findQuestion,
   getQuestionContent,
   getQuestionScore,
@@ -505,11 +505,11 @@ const exportToExcel = async () => {
 }
 
 // 批改
-const openReviewModal = async (record: any) => {
+const handleOpenReview = async (record: any) => {
   try {
     const res = await api.get<any>(`/exam-records/${record.id}`)
     const fullRecord = res.data
-    await initReview(fullRecord)
+    await openReviewModal(fullRecord)
   } catch { /* empty */ }
 
   showReviewModal.value = true

@@ -267,7 +267,7 @@ const {
   isAllAutoGraded,
   totalScore,
   subjectiveAnswers,
-  initReview,
+  openReviewModal,
   findQuestion,
   getQuestionContent,
   getQuestionScore,
@@ -327,7 +327,7 @@ const openReview = async (record: any) => {
   try {
     const res = await api.get<any>(`/exam-records/${record.id}`)
     const fullRecord = res.data
-    await initReview(fullRecord)
+    await openReviewModal(fullRecord)
   } catch { /* empty */ }
 
   showModal.value = true
