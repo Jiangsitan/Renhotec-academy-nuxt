@@ -153,11 +153,14 @@ const blankAnswers = ref<string[]>([])
 
 // 初始化填空答案
 if (normalizeQuestionType(props.question?.type) === 5 && props.question?.correct_answer) {
+  const contentBlankCount = (props.question.content?.match(/（\s*）|\(\s*\)/g) || []).length
   try {
     const arr = JSON.parse(props.question.correct_answer)
-    blankAnswers.value = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
+    const parsed = Array.isArray(arr) ? arr : props.question.correct_answer.split(',').map((s: string) => s.trim())
+    blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
   } catch {
-    blankAnswers.value = props.question.correct_answer.split(',').map((s: string) => s.trim())
+    const parsed = props.question.correct_answer.split(',').map((s: string) => s.trim())
+    blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
   }
 }
 
@@ -181,15 +184,14 @@ watch(() => props.question, (newQ) => {
     // 重新初始化填空答案 — 先清空再赋值，防止 push 追加
     blankAnswers.value = []
     if (normalizeQuestionType(newQ.type) === 5 && newQ.correct_answer) {
+      const contentBlankCount = (newQ.content?.match(/（\s*）|\(\s*\)/g) || []).length
       try {
         const arr = JSON.parse(newQ.correct_answer)
-        if (Array.isArray(arr)) {
-          blankAnswers.value = [...arr]
-        } else {
-          blankAnswers.value = newQ.correct_answer.split(',').map((s: string) => s.trim())
-        }
+        const parsed = Array.isArray(arr) ? arr : newQ.correct_answer.split(',').map((s: string) => s.trim())
+        blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
       } catch {
-        blankAnswers.value = newQ.correct_answer.split(',').map((s: string) => s.trim())
+        const parsed = newQ.correct_answer.split(',').map((s: string) => s.trim())
+        blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
       }
     }
   }
@@ -222,7 +224,7 @@ watch(blankCount, (newCount) => {
   while (blankAnswers.value.length > newCount) {
     blankAnswers.value.pop()
   }
-})
+}, { immediate: true })
 
 // 正确答案（从每空的答案合并）
 watch(blankAnswers, () => {
