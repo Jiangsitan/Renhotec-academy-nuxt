@@ -157,13 +157,18 @@ if (normalizeQuestionType(props.question?.type) === 5 && props.question?.correct
   try {
     const arr = JSON.parse(props.question.correct_answer)
     const parsed = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
-    // 先移除尾部空元素，再取前 N 个
+    // 移除尾部空元素
     while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-    blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
+    // 从尾部取 N 个（答案在尾部），前面不足的补空
+    const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
+    while (sliced.length < contentBlankCount) sliced.unshift('')
+    blankAnswers.value = sliced
   } catch {
     const parsed = props.question.correct_answer.split(',').map((s: string) => s.trim())
     while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-    blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
+    const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
+    while (sliced.length < contentBlankCount) sliced.unshift('')
+    blankAnswers.value = sliced
   }
 }
 
@@ -191,13 +196,18 @@ watch(() => props.question, (newQ) => {
       try {
         const arr = JSON.parse(newQ.correct_answer)
         const parsed = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())
-        // 先移除尾部空元素，再取前 N 个
+        // 移除尾部空元素
         while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-        blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
+        // 从尾部取 N 个（答案在尾部），前面不足的补空
+        const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
+        while (sliced.length < contentBlankCount) sliced.unshift('')
+        blankAnswers.value = sliced
       } catch {
         const parsed = newQ.correct_answer.split(',').map((s: string) => s.trim())
         while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
-        blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
+        const sliced = contentBlankCount > 0 ? parsed.slice(-contentBlankCount) : parsed
+        while (sliced.length < contentBlankCount) sliced.unshift('')
+        blankAnswers.value = sliced
       }
     }
   }
