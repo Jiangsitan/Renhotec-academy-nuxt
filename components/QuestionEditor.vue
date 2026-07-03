@@ -156,10 +156,13 @@ if (normalizeQuestionType(props.question?.type) === 5 && props.question?.correct
   const contentBlankCount = (props.question.content?.match(/（\s*）|\(\s*\)/g) || []).length
   try {
     const arr = JSON.parse(props.question.correct_answer)
-    const parsed = Array.isArray(arr) ? arr : props.question.correct_answer.split(',').map((s: string) => s.trim())
+    const parsed = Array.isArray(arr) ? [...arr] : props.question.correct_answer.split(',').map((s: string) => s.trim())
+    // 先移除尾部空元素，再取前 N 个
+    while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
     blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
   } catch {
     const parsed = props.question.correct_answer.split(',').map((s: string) => s.trim())
+    while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
     blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
   }
 }
@@ -187,10 +190,13 @@ watch(() => props.question, (newQ) => {
       const contentBlankCount = (newQ.content?.match(/（\s*）|\(\s*\)/g) || []).length
       try {
         const arr = JSON.parse(newQ.correct_answer)
-        const parsed = Array.isArray(arr) ? arr : newQ.correct_answer.split(',').map((s: string) => s.trim())
+        const parsed = Array.isArray(arr) ? [...arr] : newQ.correct_answer.split(',').map((s: string) => s.trim())
+        // 先移除尾部空元素，再取前 N 个
+        while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
         blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
       } catch {
         const parsed = newQ.correct_answer.split(',').map((s: string) => s.trim())
+        while (parsed.length > 0 && parsed[parsed.length - 1] === '') parsed.pop()
         blankAnswers.value = contentBlankCount > 0 ? parsed.slice(0, contentBlankCount) : parsed
       }
     }
