@@ -172,6 +172,26 @@ describe('fillBlank', () => {
     it('handles empty JSON array', () => {
       expect(parseCorrectAnswers('[]', 5)).toEqual([])
     })
+
+    it('parses JSON object for fill_blank type', () => {
+      expect(parseCorrectAnswers('{"0":"北京","1":"上海"}', 5)).toEqual(['北京', '上海'])
+    })
+
+    it('parses comma-separated string for fill_blank type', () => {
+      expect(parseCorrectAnswers('北京,上海', 5)).toEqual(['北京', '上海'])
+    })
+
+    it('parses 顿号-separated string for fill_blank type', () => {
+      expect(parseCorrectAnswers('北京、上海', 5)).toEqual(['北京', '上海'])
+    })
+
+    it('trims whitespace in separated strings', () => {
+      expect(parseCorrectAnswers('北京 , 上海', 5)).toEqual(['北京', '上海'])
+    })
+
+    it('filters empty strings from separated values', () => {
+      expect(parseCorrectAnswers('北京,,上海', 5)).toEqual(['北京', '上海'])
+    })
   })
 
   // ========== formatCorrectAnswer ==========
@@ -191,6 +211,22 @@ describe('fillBlank', () => {
 
     it('returns original string when JSON parse fails', () => {
       expect(formatCorrectAnswer('not json', 5)).toBe('not json')
+    })
+
+    it('formats JSON object with 、 for fill_blank type', () => {
+      expect(formatCorrectAnswer('{"0":"北京","1":"上海"}', 5)).toBe('北京、上海')
+    })
+
+    it('formats comma-separated string with 、 for fill_blank type', () => {
+      expect(formatCorrectAnswer('北京,上海', 5)).toBe('北京、上海')
+    })
+
+    it('formats 顿号-separated string with 、 for fill_blank type', () => {
+      expect(formatCorrectAnswer('北京、上海', 5)).toBe('北京、上海')
+    })
+
+    it('trims and joins separated values', () => {
+      expect(formatCorrectAnswer('北京 , 上海', 5)).toBe('北京、上海')
     })
   })
 

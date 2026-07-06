@@ -388,11 +388,6 @@ const onSeriesChange = async (seriesId: string) => {
 }
 
 const addCourse = () => {
-  console.log('addCourse called', { 
-    selectedCourseId: selectedCourseId.value, 
-    type: typeof selectedCourseId.value,
-    options: courseOptionsBySeries.value 
-  })
   
   if (!selectedCourseId.value) return
   
@@ -408,7 +403,6 @@ const addCourse = () => {
   const course = courseOptionsBySeries.value.find((c: any) => Number(c.value) === courseId)
   const series = seriesOptions.value.find((s: any) => String(s.value) === String(selectedSeriesId.value))
   
-  console.log('Found course:', course, 'Found series:', series)
   
   if (course) {
     selectedCourses.value.push({
@@ -418,7 +412,6 @@ const addCourse = () => {
       series_name: series?.label?.split(' (')[0] || ''
     })
     examForm.value.course_ids = selectedCourses.value.map((c: any) => c.id)
-    console.log('Course added, selectedCourses:', selectedCourses.value)
   }
   selectedCourseId.value = ''
 }
@@ -440,14 +433,12 @@ const openExamModal = async (exam?: any) => {
     Object.assign(examForm.value, { title: exam.title, course_ids: exam.courses?.map((c: any) => c.id) || [], time_limit: exam.time_limit, passing_score: parseFloat(exam.passing_score) || 60 })
     // 构建已选课程列表
     if (exam.courses?.length) {
-      console.log('Loading courses from exam:', exam.courses)
-      selectedCourses.value = exam.courses.map((c: any) => ({
+          selectedCourses.value = exam.courses.map((c: any) => ({
         id: c.id,
         title: c.title,
         series_id: c.series_id,
         series_name: c.series?.name || ''
       }))
-      console.log('Selected courses:', selectedCourses.value)
       // 预加载已选课程对应系列的课程选项
       const seriesIds = [...new Set(exam.courses.map((c: any) => c.series_id).filter(Boolean))]
       for (const sid of seriesIds) {
@@ -482,8 +473,6 @@ const handleExamSubmit = async () => {
     return
   }
 
-  console.log('Submitting exam form:', examForm.value)
-  console.log('Selected courses:', selectedCourses.value)
 
   saving.value = true
   try {

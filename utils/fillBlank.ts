@@ -73,7 +73,7 @@ export const parseCorrectAnswers = (correctAnswer: string | null | undefined, qu
     }
     // 逗号或顿号分隔
     if (correctAnswer.includes(',') || correctAnswer.includes('、')) {
-      return correctAnswer.split(/[,、]/).map(s => s.trim())
+      return correctAnswer.split(/[,、]/).map(s => s.trim()).filter(Boolean)
     }
   }
   return [correctAnswer]

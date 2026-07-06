@@ -148,7 +148,40 @@
             />
           </div>
 
-          <!-- 非填空题：普通显示 -->
+          <!-- 选择题（单选/多选/判断）：显示选项列表 -->
+          <div v-else-if="isChoiceType(answer.question_id)" class="mb-3">
+            <div class="text-sm text-gray-600 mb-2 fill-blank-content" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
+            <div class="space-y-2 mt-2">
+              <div
+                v-for="option in getQuestionOptions(answer.question_id)"
+                :key="option"
+                class="flex items-center gap-2 p-2 rounded-lg text-sm"
+                :class="{
+                  'bg-green-100 border border-green-300': getOptionClass(answer, option.charAt(0)) === 'option-correct',
+                  'bg-red-100 border border-red-300': getOptionClass(answer, option.charAt(0)) === 'option-wrong',
+                  'bg-gray-50 border border-gray-200': !getOptionClass(answer, option.charAt(0))
+                }"
+              >
+                <span class="font-medium" :class="{
+                  'text-green-700': getOptionClass(answer, option.charAt(0)) === 'option-correct',
+                  'text-red-700': getOptionClass(answer, option.charAt(0)) === 'option-wrong',
+                  'text-gray-500': !getOptionClass(answer, option.charAt(0))
+                }">{{ option }}</span>
+                <span v-if="getOptionClass(answer, option.charAt(0)) === 'option-correct'" class="text-green-600 text-xs ml-auto">✓ 正确</span>
+                <span v-else-if="getOptionClass(answer, option.charAt(0)) === 'option-wrong'" class="text-red-600 text-xs ml-auto">✗ 错误</span>
+                <span v-else-if="isCorrectOption(answer.question_id, option.charAt(0))" class="text-green-600 text-xs ml-auto">正确答案</span>
+              </div>
+            </div>
+            <!-- 学员选择的答案 -->
+            <div class="mt-2 text-sm text-gray-600">
+              <span class="font-medium">学员答案：</span>
+              <span :class="answer.is_correct === true ? 'text-green-600' : answer.is_correct === false ? 'text-red-600' : 'text-gray-800'">
+                {{ answer.answer || '未作答' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 简答题：普通显示 -->
           <template v-else>
             <div class="text-sm text-gray-600 mb-2 fill-blank-content" v-html="renderContent(getQuestionContent(answer.question_id))"></div>
             <p class="text-sm text-gray-800 bg-white p-3 rounded border mb-3">
@@ -277,6 +310,10 @@ const {
   isFillBlank,
   isChoiceType,
   parseCorrectAnswers,
+  getQuestionOptions,
+  getOptionClass,
+  isCorrectOption,
+  getSelectedOptions,
   updateScore,
   updateCorrectness,
   getReviewPayload,
