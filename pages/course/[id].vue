@@ -64,6 +64,7 @@
             :course-id="course.id"
             :min-read-time="course.min_read_time || 30"
             :completed="progress?.is_completed"
+            :show-progress="true"
             @completed="onDocumentComplete"
           >
             <p class="text-sm text-gray-500">
@@ -79,6 +80,7 @@
             :min-read-time="course.min_read_time || 30"
             :completed="progress?.is_completed"
             :initial-elapsed="progress?.total_learning_time ?? 0"
+            :show-progress="true"
             @completed="onDocumentComplete"
             @synced="onDocumentSynced"
           >
@@ -149,6 +151,7 @@
                 :min-read-time="course.min_read_time || 30"
                 :completed="progress?.is_completed"
                 :initial-elapsed="progress?.total_learning_time ?? 0"
+                :show-progress="true"
                 :auto-start="true"
                 @completed="onDocumentComplete"
                 @synced="onDocumentSynced"
