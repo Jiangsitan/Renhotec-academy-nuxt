@@ -281,6 +281,21 @@
         </template>
       </UCard>
     </UModal>
+
+    <!-- 审核确认弹窗 -->
+    <ExamReviewConfirmModal
+      v-model="showConfirmModal"
+      :record="reviewingRecord"
+      :all-answers="allAnswers"
+      :scores="scores"
+      :correctness="correctness"
+      :comment="confirmComment"
+      :total-score="totalScore"
+      :loading="reviewing"
+      :get-question-index="getQuestionIndex"
+      :get-question-type-label="getQuestionTypeLabel"
+      @confirm="confirmSubmit"
+    />
   </div>
 </template>
 
@@ -344,6 +359,9 @@ const {
 
 const showReviewModal = ref(false)
 const reviewing = ref(false)
+const showConfirmModal = ref(false)
+const confirmComment = ref('')
+const submitMode = ref<'review' | 'quick'>('review')
 
 // 部门选项
 const departmentOptions = ref<any[]>([{ label: '全部部门', value: '' }])
@@ -553,37 +571,37 @@ const handleOpenReview = async (record: any) => {
 }
 
 // 一键审核通过
-const quickApprove = async () => {
-  reviewing.value = true
-  try {
-    const payload = getReviewPayload()
-    // Override comment to null for quick approve
-    payload.comment = null
-
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
-    toast.add({ title: '审核完成', color: 'green' })
-    showReviewModal.value = false
-    await loadRecords(currentPage.value)
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '审核失败', color: 'red' })
-  }
-  reviewing.value = false
+const quickApprove = () => {
+  submitMode.value = 'quick'
+  confirmComment.value = ''
+  showConfirmModal.value = true
 }
 
 // 提交批改
-const handleReview = async () => {
+const handleReview = () => {
+  submitMode.value = 'review'
+  confirmComment.value = reviewComment.value
+  showConfirmModal.value = true
+}
+
+// 确认提交
+const confirmSubmit = async () => {
   reviewing.value = true
   try {
     const payload = getReviewPayload()
-    // Send null when comment is empty
-    if (!payload.comment) payload.comment = null
+    if (submitMode.value === 'quick') {
+      payload.comment = null
+    } else {
+      payload.comment = confirmComment.value || null
+    }
 
     await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
-    toast.add({ title: '批改完成', color: 'green' })
+    toast.add({ title: submitMode.value === 'quick' ? '审核完成' : '批改完成', color: 'green' })
+    showConfirmModal.value = false
     showReviewModal.value = false
     await loadRecords(currentPage.value)
   } catch (e: any) {
-    toast.add({ title: e?.data?.message || '批改失败', color: 'red' })
+    toast.add({ title: e?.data?.message || '提交失败', color: 'red' })
   }
   reviewing.value = false
 }

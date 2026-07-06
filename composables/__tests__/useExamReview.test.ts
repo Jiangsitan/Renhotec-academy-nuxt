@@ -331,6 +331,48 @@ describe('useExamReview', () => {
       await composable.openReviewModal(mockRecord)
       expect(composable.getCorrectAnswer(999)).toBe('')
     })
+
+    it('returns raw string for fill-blank with invalid JSON', async () => {
+      const recordWithInvalidJson = {
+        ...mockRecord,
+        exam: {
+          ...mockExam,
+          questions: [
+            ...mockExam.questions.slice(0, 4),
+            {
+              id: 5,
+              type: 5,
+              content: '填空题',
+              correct_answer: 'not-valid-json',
+              score: 10,
+            },
+          ],
+        },
+      }
+      await composable.openReviewModal(recordWithInvalidJson)
+      expect(composable.getCorrectAnswer(5)).toBe('not-valid-json')
+    })
+
+    it('returns raw string for fill-blank with non-array JSON', async () => {
+      const recordWithNonArrayJson = {
+        ...mockRecord,
+        exam: {
+          ...mockExam,
+          questions: [
+            ...mockExam.questions.slice(0, 4),
+            {
+              id: 5,
+              type: 5,
+              content: '填空题',
+              correct_answer: '{"key": "value"}',
+              score: 10,
+            },
+          ],
+        },
+      }
+      await composable.openReviewModal(recordWithNonArrayJson)
+      expect(composable.getCorrectAnswer(5)).toBe('{"key": "value"}')
+    })
   })
 
   // ========== getQuestionTypeLabel ==========
@@ -446,6 +488,50 @@ describe('useExamReview', () => {
       await composable.openReviewModal(recordWithMultiBlank)
       const answers = composable.parseCorrectAnswers(5)
       expect(answers).toEqual(['HTML', 'CSS', 'JavaScript'])
+    })
+
+    it('returns single-element array for fill-blank with invalid JSON', async () => {
+      const recordWithInvalidJson = {
+        ...mockRecord,
+        exam: {
+          ...mockExam,
+          questions: [
+            ...mockExam.questions.slice(0, 4),
+            {
+              id: 5,
+              type: 5,
+              content: '填空题',
+              correct_answer: 'not-valid-json',
+              score: 10,
+            },
+          ],
+        },
+      }
+      await composable.openReviewModal(recordWithInvalidJson)
+      const answers = composable.parseCorrectAnswers(5)
+      expect(answers).toEqual(['not-valid-json'])
+    })
+
+    it('returns single-element array for fill-blank with non-array JSON', async () => {
+      const recordWithNonArrayJson = {
+        ...mockRecord,
+        exam: {
+          ...mockExam,
+          questions: [
+            ...mockExam.questions.slice(0, 4),
+            {
+              id: 5,
+              type: 5,
+              content: '填空题',
+              correct_answer: '{"key": "value"}',
+              score: 10,
+            },
+          ],
+        },
+      }
+      await composable.openReviewModal(recordWithNonArrayJson)
+      const answers = composable.parseCorrectAnswers(5)
+      expect(answers).toEqual(['{"key": "value"}'])
     })
   })
 

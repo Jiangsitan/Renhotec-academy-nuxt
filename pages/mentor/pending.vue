@@ -266,6 +266,21 @@
         </div>
       </div>
     </div>
+
+    <!-- 审核确认弹窗 -->
+    <ExamReviewConfirmModal
+      v-model="showConfirmModal"
+      :record="reviewingRecord"
+      :all-answers="allAnswers"
+      :scores="scores"
+      :correctness="correctness"
+      :comment="confirmComment"
+      :total-score="totalScore"
+      :loading="submitting"
+      :get-question-index="getQuestionIndex"
+      :get-question-type-label="getQuestionTypeLabel"
+      @confirm="confirmSubmit"
+    />
   </div>
 </template>
 
@@ -322,6 +337,9 @@ const {
 
 const showModal = ref(false)
 const submitting = ref(false)
+const showConfirmModal = ref(false)
+const confirmComment = ref('')
+const submitMode = ref<'review' | 'quick'>('review')
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
@@ -375,36 +393,37 @@ const viewDetail = (record: any) => {
 }
 
 // 一键审核通过
-const quickApprove = async () => {
-  submitting.value = true
-  try {
-    const payload = getReviewPayload()
-    payload.comment = null
-
-    await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
-    showModal.value = false
-    await loadPendingRecords()
-    toast.add({ title: '审核完成', color: 'green' })
-  } catch (e: any) {
-    toast.add({ title: e?.data?.message || '审核失败', color: 'red' })
-  } finally {
-    submitting.value = false
-  }
+const quickApprove = () => {
+  submitMode.value = 'quick'
+  confirmComment.value = ''
+  showConfirmModal.value = true
 }
 
-// 提交批改（调整分数后）
-const submitReview = async () => {
+// 提交批改
+const submitReview = () => {
+  submitMode.value = 'review'
+  confirmComment.value = comment.value
+  showConfirmModal.value = true
+}
+
+// 确认提交
+const confirmSubmit = async () => {
   submitting.value = true
   try {
     const payload = getReviewPayload()
-    if (!payload.comment) payload.comment = null
+    if (submitMode.value === 'quick') {
+      payload.comment = null
+    } else {
+      payload.comment = confirmComment.value || null
+    }
 
     await api.post(`/mentor/review/${reviewingRecord.value.id}`, payload)
+    toast.add({ title: submitMode.value === 'quick' ? '审核完成' : '批改完成', color: 'green' })
+    showConfirmModal.value = false
     showModal.value = false
     await loadPendingRecords()
-    toast.add({ title: '批改完成', color: 'green' })
   } catch (e: any) {
-    toast.add({ title: e?.data?.message || '批改失败', color: 'red' })
+    toast.add({ title: e?.data?.message || '提交失败', color: 'red' })
   } finally {
     submitting.value = false
   }

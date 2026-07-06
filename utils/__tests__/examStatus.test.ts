@@ -291,6 +291,10 @@ describe('examStatus', () => {
     it('returns arrow path icon for status 6', () => {
       expect(getStatusIcon(createRecord({ status: 6 }))).toBe('i-heroicons-arrow-path')
     })
+
+    it('returns default clipboard icon for unknown status', () => {
+      expect(getStatusIcon(createRecord({ status: 99 }))).toBe('i-heroicons-clipboard-document-check')
+    })
   })
 
   // ========== getStatusColor ==========
@@ -354,6 +358,10 @@ describe('examStatus', () => {
     it('returns gray for status 6', () => {
       expect(getStatusColor(createRecord({ status: 6 }))).toBe('gray')
     })
+
+    it('returns default gray for unknown status', () => {
+      expect(getStatusColor(createRecord({ status: 99 }))).toBe('gray')
+    })
   })
 
   // ========== getScoreClass ==========
@@ -416,6 +424,10 @@ describe('examStatus', () => {
 
     it('returns gray for status 6', () => {
       expect(getScoreClass(createRecord({ status: 6 }))).toBe('text-gray-400')
+    })
+
+    it('returns default gray for unknown status', () => {
+      expect(getScoreClass(createRecord({ status: 99 }))).toBe('text-gray-400')
     })
   })
 })
