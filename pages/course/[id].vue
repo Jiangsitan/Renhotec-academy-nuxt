@@ -39,7 +39,7 @@
             :completed="progress?.is_completed"
             :initial-elapsed="progress?.total_learning_time ?? 0"
             :auto-start="false"
-            :show-progress="false"
+            :show-progress="true"
             @completed="onDocumentComplete"
             @synced="onDocumentSynced"
           >

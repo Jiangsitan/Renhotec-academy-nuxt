@@ -108,7 +108,7 @@ const pageTitle = computed(() => {
     '/admin/exams': '考试管理',
     '/admin/learning-progress': '学习进度',
     '/admin/comments': '评论管理',
-    '/admin/pending-reviews': '待批改',
+    '/admin/pending-reviews': '考试记录',
     '/admin/audit-logs': '审计日志',
     '/admin/settings': '系统设置',
   }
