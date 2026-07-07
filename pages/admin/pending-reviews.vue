@@ -283,7 +283,7 @@
     </UModal>
 
     <!-- 审核确认弹窗 -->
-    <ExamReviewConfirmModal
+    <ReviewConfirmModal
       v-model="showConfirmModal"
       :record="reviewingRecord"
       :all-answers="allAnswers"
