@@ -28,6 +28,12 @@ export const useAuthStore = defineStore('auth', {
     isMentor: (state) => state.user?.role === 'mentor',
     isStudent: (state) => state.user?.role === 'student',
     isTrial: (state) => state.user?.is_trial ?? false,
+    ssoLogoutUrl: () => {
+      const config = useRuntimeConfig()
+      const ssoUrl = config.public.ssoUrl as string
+      const appUrl = config.public.appUrl as string
+      return `${ssoUrl}/admin/logout?redirect=${encodeURIComponent(appUrl + '/login')}`
+    },
   },
 
   actions: {

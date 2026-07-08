@@ -48,5 +48,12 @@ export const useAuth = () => {
     return res.data
   }
 
-  return { login, logout, fetchMe, user: computed(() => authStore.user), isLoggedIn: computed(() => authStore.isLoggedIn) }
+  const ssoLogin = async (token: string) => {
+    authStore.setToken(token)
+    const res = await api.get<{ data: UserInfo }>('/me')
+    authStore.setUser(res.data)
+    return res.data
+  }
+
+  return { login, logout, fetchMe, ssoLogin, user: computed(() => authStore.user), isLoggedIn: computed(() => authStore.isLoggedIn) }
 }

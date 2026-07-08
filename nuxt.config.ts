@@ -19,6 +19,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || '',
+      ssoUrl: process.env.NUXT_PUBLIC_SSO_URL || 'https://home.renhotec.cn',
+      ssoClientId: process.env.NUXT_PUBLIC_SSO_CLIENT_ID || '',
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || 'https://learn.renhotec.cn',
     },
   },
 

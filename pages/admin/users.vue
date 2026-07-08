@@ -71,7 +71,7 @@
             <UFormGroup label="工号" required :description="editingUser ? '工号不可修改' : ''">
               <UInput v-model="form.employee_no" placeholder="请输入工号" :disabled="!!editingUser" />
             </UFormGroup>
-            <UFormGroup label="邮箱">
+            <UFormGroup label="邮箱" required>
               <UInput v-model="form.email" type="email" placeholder="请输入邮箱" />
             </UFormGroup>
             <UFormGroup label="手机">
@@ -353,8 +353,6 @@ const handleSubmit = async () => {
     const payload: any = { ...form }
     // 非学员角色不传 mentor_id
     if (payload.role !== 'student') payload.mentor_id = null
-    // 空邮箱发送 null 而非空字符串
-    if (!payload.email) payload.email = null
 
     if (editingUser.value) {
       await api.put(`/admin/users/${editingUser.value.id}`, payload)
