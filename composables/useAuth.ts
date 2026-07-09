@@ -11,6 +11,7 @@ interface UserInfo {
   name: string
   employee_no: string
   email: string
+  is_placeholder_email?: boolean
   role: string
   department: string
   position: string

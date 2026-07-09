@@ -12,9 +12,15 @@
 
     <!-- 用户列表 -->
     <UCard>
-      <UTable :rows="users" :columns="columns" :loading="loading">
+          <UTable :rows="users" :columns="columns" :loading="loading">
         <template #role-data="{ row }">
           <UBadge :label="roleLabel(row.role)" :color="roleColor(row.role)" variant="subtle" />
+        </template>
+        <template #email-data="{ row }">
+          <div class="flex items-center gap-1">
+            <span>{{ row.email || '-' }}</span>
+            <UBadge v-if="row.is_placeholder_email" label="占位" color="orange" variant="subtle" size="xs" />
+          </div>
         </template>
         <template #mentors-data="{ row }">
           <div v-if="row.mentors?.length" class="flex flex-wrap gap-1">
@@ -71,8 +77,8 @@
             <UFormGroup label="工号" required :description="editingUser ? '工号不可修改' : ''">
               <UInput v-model="form.employee_no" placeholder="请输入工号" :disabled="!!editingUser" />
             </UFormGroup>
-            <UFormGroup label="邮箱" required>
-              <UInput v-model="form.email" type="email" placeholder="请输入邮箱" />
+            <UFormGroup label="邮箱" description="留空将自动生成占位邮箱">
+              <UInput v-model="form.email" type="email" placeholder="请输入邮箱（可选）" />
             </UFormGroup>
             <UFormGroup label="手机">
               <UInput v-model="form.phone" placeholder="请输入手机号" />
@@ -251,6 +257,7 @@ const form = reactive({
 const columns = [
   { key: 'employee_no', label: '工号' },
   { key: 'name', label: '姓名' },
+  { key: 'email', label: '邮箱' },
   { key: 'department', label: '部门' },
   { key: 'role', label: '角色' },
   { key: 'mentors', label: '导师' },
